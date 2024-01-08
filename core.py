@@ -9,6 +9,21 @@ tqdm.pandas()
 SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
 
 
+def deep_hash(values):
+    try:
+        return hash(values)
+    except TypeError:
+        if isinstance(values, tuple):
+            print(values)
+            return hash(values)
+        elif isinstance(values, list):
+            return hash(tuple(values))
+        hashes = []
+        for item in values.values():
+            hashes.append(deep_hash(item))
+        return deep_hash(hashes)
+
+
 def get_save_name(repo_path: str) -> str:
     os.makedirs(SAVE_FOLDER, exist_ok=True)
     sha1 = hashlib.sha1()
@@ -39,12 +54,14 @@ class FolderMerger:
     def __init__(self, main_repo: str, duplicates_repo: list = []):
 
         self.main_repo_path = main_repo
-        self.duplicates_repo = duplicates_repo
-
         self.main_struct = self.get_struct(self.main_repo_path)
+
         self.child_structs = {}
-        for repo_path in self.duplicates_repo:
+        for repo_path in duplicates_repo:
             self.child_structs[repo_path] = self.get_struct(repo_path)
+
+        for repo_path in self.child_structs.keys():
+            self.child_structs[repo_path] = self.compare_to_main(self.child_structs[repo_path])
 
         self.save()
 
@@ -63,28 +80,53 @@ class FolderMerger:
     def gather_files(self, repo_path: str) -> pd.DataFrame:
 
         structure = []
-        for root, dirs, files in tqdm(os.walk(repo_path)):
+        for root, dirs, files in tqdm(os.walk(repo_path), desc="Finding all files in the repo"):
             if not files:
                 continue
 
             relative_dir = os.path.relpath(root, repo_path)
             dirs = relative_dir.split(os.sep)
+            dirs = [] if dirs == ["."] else dirs
 
             for file in files:
                 file_fullpath = os.path.join(root, file)
                 file_relpath = os.path.join(relative_dir, file)
                 name, ext = os.path.splitext(file)
+                ctime = os.path.getctime(file_fullpath)
+                mtime = os.path.getmtime(file_fullpath)
+                time = ctime if ctime > mtime else mtime
                 file_record = {
                     "filename": file,
                     "name": name,
                     "ext": ext,
                     "fullpath": file_fullpath,
                     "relpath": file_relpath,
-                    "dirs": dirs
+                    "dirs": dirs,
+                    "ctime": ctime,
+                    "mtime": mtime,
+                    "time": time
                 }
+
+                file_record["uuid"] = deep_hash(file_record)
                 structure.append(file_record)
 
-        return pd.DataFrame(structure)
+        return pd.DataFrame(structure).set_index("uuid")
+
+    def compare_to_main(self, repo_struct: pd.DataFrame):
+        repo_struct["content_matches"] = [[]] * len(repo_struct)
+        repo_struct["name_matches"] = [[]] * len(repo_struct)
+        for index, row in tqdm(repo_struct.iterrows(), total=len(repo_struct), desc="comparing to main"):
+            matches = self.main_struct.relpath == row.relpath
+            matches = matches[matches]
+            if len(matches):
+                repo_struct.at[index, "name_matches"] = matches.index.tolist()
+
+            matches = self.main_struct.hash == row.hash
+            matches = matches[matches]
+            if len(matches):
+                repo_struct.at[index, "content_matches"] = matches.index.tolist()
+
+        return repo_struct
 
     def gather_hashes(self, repo_struct: pd.DataFrame):
         repo_struct["hash"] = repo_struct.fullpath.progress_apply(self.get_hash)
@@ -99,7 +141,6 @@ class FolderMerger:
                 content = f.read(BUF_SIZE)
                 if not content:
                     break
-
                 sha1.update(content)
         return sha1.hexdigest()
 
@@ -114,8 +155,8 @@ class FolderMerger:
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets")
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
     print(data.main_struct)
     print(len(data.main_struct))
-    print(data.main_struct.iloc[0])
+    print(list(data.child_structs.values())[0])
