@@ -1,4 +1,4 @@
-from core import FolderMerger
+from . core import FolderMerger
 import logging, sys
 
 LOGGER = logging.getLogger()
