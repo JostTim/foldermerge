@@ -26,9 +26,10 @@ def deep_hash(values):
 
 class StatusFile():
 
-    def __init__(self):
+    def __init__(self, owner):
         self.save_path = str(Path.home() / "Downloads" / "FILE_HASHES" / "status.json")
         self.make()
+        self.owner = owner
 
     def make(self):
         if not os.path.isfile(self.save_path):
@@ -41,6 +42,28 @@ class StatusFile():
 
     def write(self, folder, status):
         data = self.read_all()
+
+        if isinstance(self.owner, FolderChecker):
+            catergory_key = "checks"
+            object_key = "me"
+        elif isinstance(self.owner, FolderComparator):
+            catergory_key = "comparison"
+            object_key = self.owner.name
+        else :
+            raise ValueError("must be FolderChecker or FolderComparator")
+
+        # select and update with current obj dict, the key of the folder
+        selection = data.get(self.owner.foldername, {})
+        data.update({self.owner.foldername: selection})
+
+        # select and update with current obj dict, the key of the action (check, compare)
+        selection = selection.get(catergory_key, {})
+        data[self.owner.foldername].update({catergory_key: selection})
+
+        # select and update with current obj dict, the key of the action (check, compare)
+        selection = selection.get(catergory_key, {})
+        data[self.owner.foldername].update({catergory_key: selection})
+
         data.update({folder.name: {"status": status, "path" : folder.repo_path}})
         with open(self.save_path, "w", newline='\n') as f :
             json.dump(data, f, indent=4, sort_keys=True)
@@ -56,9 +79,10 @@ class FolderChecker:
     structure = None
     error = "undefined"
 
-    def __init__(self, repo_path):
+    def __init__(self, repo_path:str, name:str=None):
         self.repo_path = repo_path
-        self.name = self.get_save_name()
+        self.name = self.get_save_name() if name is None else "calc_" + name
+        self.foldername = self.name
         self.save_path = self.get_save_path()
 
         self.load()
@@ -197,26 +221,9 @@ class FolderChecker:
                 sha1.update(content)
         return sha1.hexdigest()
 
-    def get_comparison(self, cell, compared_data):
-        matches = compared_data == cell
-        matches = matches[matches]
-        if len(matches):
-            return matches.index.tolist()
-        return []
 
-    def compare(self, compare_struct: pd.DataFrame, mode=False):
-        self.set_error("comparison_error")
 
-        if (self.get_error() != "comparison_success" and mode) or "name_matches" not in self.data.columns :
-            print("Comparing names:")
-            self.data["name_matches"] = self.data.relpath.progress_apply(
-                self.get_comparison, compared_data=compare_struct.data.relpath)
-
-        if (self.get_error() != "comparison_success" and mode) or "content_matches" not in self.data.columns :
-            print("Comparing hashes:")
-            self.data["content_matches"] = self.data.hash.progress_apply(
-                self.get_comparison, compared_data=compare_struct.data.hash)
-
+    
     def __str__(self):
         return f"<Folder with name {self.name} and path : {self.repo_path}>"
 
@@ -230,7 +237,7 @@ class FolderChecker:
     def get_identical_files(self):
 
         identical_contents = self.get_diffs("content_matches", True)
-        identical_names = self.get_diffs("name_matches", False)
+        identical_names = self.get_diffs("name_matches", True)
 
         sel = identical_names.index.isin(identical_contents.index)
         return identical_names[sel]
@@ -258,6 +265,97 @@ class FolderChecker:
 
         sel = identical_names.index.isin(diff_contents.index)
         return identical_names[sel]
+
+
+    def dates_results(self, result, match_column):
+
+        def is_most_recent(row, reference):
+            ref_ix = row.name_matches[0]
+            ref_row = reference.loc[ref_ix]
+
+            return (row.ctime > ref_row.ctime, row.mtime > ref_row.mtime, row.time > ref_row.time)
+
+        def most_recent_no_ambiguity(cell):
+            # returns True if all the metric are more recent in the child vs main. Otherwise, False
+            return all(cell)
+
+        def most_old_no_ambiguity(cell):
+            # returns True if any of the metric is more recent in the child vs main. Otherwise False
+            return not any(cell)
+
+        result = result.copy()
+        result["most_recent"] = result.apply(is_most_recent, reference=main, axis=1)
+
+
+    def comparison_results(self):
+        print(f"Report of contents for repo {self.name} at {self.repo_path}:")
+
+        identical_contents = self.get_identical_files()
+        inexistant_contents = self.get_inexistant_files()
+        moved_contents = self.get_moved_files()
+        changed_contents = self.get_changed_files()
+
+        print(f" - {len(self.data)} total files found.\n"
+              f" - {len(identical_contents)} identical files (will be deleted)\n"
+              f" - {len(inexistant_contents)} inexistant files (will be copied in main)\n"
+              f" - {len(moved_contents)} moved files (same content, different location) (tbd)\n"
+              f" - {len(changed_contents)} changed files (same location, different content) (tbd)\n"
+              )
+
+
+class FolderComparator:
+
+    SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
+    data = None
+
+    def __init__(self, current : FolderChecker, reference: FolderChecker):
+        self.current = current
+        self.reference = reference
+        self.foldername = self.current.foldername
+
+        self.name = self.current.name + "_vs_" + self.reference.name
+
+        self.save_path = self.get_save_path()
+
+    def get_save_path(self) -> str:
+        os.makedirs(self.SAVE_FOLDER, exist_ok=True)
+        return os.path.join(self.SAVE_FOLDER, f"{self.name}.pickle")
+
+    def get_matches(self, cell, compared_data):
+        matches = compared_data == cell
+        matches = matches[matches]
+        if len(matches):
+            return matches.index.tolist()
+        return []
+
+    def compare(self, mode=False):
+        self.set_error("comparison_error")
+
+        if (self.get_error() != "comparison_success" and mode) or "name_matches" not in self.data.columns :
+            print("Comparing names:")
+            self.data["name_matches"] = self.data.relpath.progress_apply(
+                self.get_comparison, compared_data=compare_struct.data.relpath)
+
+        if (self.get_error() != "comparison_success" and mode) or "content_matches" not in self.data.columns :
+            print("Comparing hashes:")
+            self.data["content_matches"] = self.data.hash.progress_apply(
+                self.get_comparison, compared_data=compare_struct.data.hash)
+
+
+    def save(self):
+        print(f"saving {self}")
+        if self.data is None:
+            return False
+        self.data.to_pickle(self.save_path)
+        StatusFile().write(self, self.error)
+        return True
+
+    def load(self):
+        print(f"loading {self}")
+        if os.path.isfile(self.save_path):
+            self.data = pd.read_pickle(self.save_path)
+            return
+        self.data = None
 
 
 class FolderMerger:
@@ -291,12 +389,22 @@ class FolderMerger:
         supps = "\n".join([f"{struct}" for struct in self.structs])
         return f"<GatherHashes with folders :\n{supps}>"
 
-    def get_child(self, child_name):
+    def get_child(self, child_name=None):
+        if child_name is None :
+            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][0]
+        elif isinstance(child_name, int): 
+            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][child_name]
         got = [child for name, child in self.structs.items() if child.name == child_name]
         if len(got):
             return got[0]
         else :
             raise ValueError(f"No child with name {child_name}")
+
+    def report(self):
+        for name, struct in self.structs.items():
+            if name == "main":
+                continue
+            struct.comparison_results()
 
 
 if __name__ == "__main__":
