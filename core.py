@@ -24,20 +24,21 @@ def deep_hash(values):
         return deep_hash(hashes)
 
 
-class StatusFile():
+class StatusFile:
 
     def __init__(self, owner):
-        self.save_path = str(Path.home() / "Downloads" / "FILE_HASHES" / "status.json")
+        self.save_path = str(Path.home() / "Downloads" /
+                             "FILE_HASHES" / "status.json")
         self.make()
         self.owner = owner
 
     def make(self):
         if not os.path.isfile(self.save_path):
-            with open(self.save_path, "w") as f :
+            with open(self.save_path, "w") as f:
                 json.dump({}, f)
 
     def read_all(self):
-        with open(self.save_path, "r") as f :
+        with open(self.save_path, "r") as f:
             return json.load(f)
 
     def write(self, folder, status):
@@ -49,7 +50,7 @@ class StatusFile():
         elif isinstance(self.owner, FolderComparator):
             catergory_key = "comparison"
             object_key = self.owner.name
-        else :
+        else:
             raise ValueError("must be FolderChecker or FolderComparator")
 
         # select and update with current obj dict, the key of the folder
@@ -64,8 +65,9 @@ class StatusFile():
         selection = selection.get(catergory_key, {})
         data[self.owner.foldername].update({catergory_key: selection})
 
-        data.update({folder.name: {"status": status, "path" : folder.repo_path}})
-        with open(self.save_path, "w", newline='\n') as f :
+        data.update(
+            {folder.name: {"status": status, "path": folder.repo_path}})
+        with open(self.save_path, "w", newline='\n') as f:
             json.dump(data, f, indent=4, sort_keys=True)
 
     def read(self, folder):
@@ -75,11 +77,11 @@ class StatusFile():
 class FolderChecker:
 
     SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
-    data = None
+    data: pd.DataFrame | None = None
     structure = None
     error = "undefined"
 
-    def __init__(self, repo_path:str, name:str=None):
+    def __init__(self, repo_path: str, name: str | None = None):
         self.repo_path = repo_path
         self.name = self.get_save_name() if name is None else "calc_" + name
         self.foldername = self.name
@@ -101,7 +103,7 @@ class FolderChecker:
         if self.data is None:
             return False
         self.data.to_pickle(self.save_path)
-        StatusFile().write(self, self.error)
+        StatusFile(self).write(self, self.error)
         return True
 
     def load(self):
@@ -127,8 +129,10 @@ class FolderChecker:
 
             for file in files:
                 file_fullpath = os.path.join(root, file)
-                if mode :
-                    if file_fullpath in self.data.fullpath :
+                if mode:
+                    if self.data is None:
+                        raise ValueError("")
+                    if file_fullpath in self.data.fullpath:
                         continue
                 file_relpath = os.path.join(relative_dir, file)
                 name, ext = os.path.splitext(file)
@@ -150,13 +154,16 @@ class FolderChecker:
                 file_record["uuid"] = deep_hash(file_record)
                 self.structure.append(file_record)
 
-        if len(self.structure) == 0 :
+        if len(self.structure) == 0:
             raise IOError("Found no files !")
-        else :
-            if mode :
+        else:
+            if mode:
+                if self.data is None:
+                    raise ValueError("")
                 temp_data = pd.DataFrame(self.structure).set_index("uuid")
-                self.data = pd.concat([self.data, temp_data]).drop_duplicates(subset=["fullpath"], keep="first")
-            else :
+                self.data = pd.concat([self.data, temp_data]).drop_duplicates(
+                    subset=["fullpath"], keep="first")
+            else:
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
     def __enter__(self):
@@ -172,40 +179,47 @@ class FolderChecker:
         self.error = error_name
 
     def get_error(self):
-        return StatusFile().read(self)
+        return StatusFile(self).read(self)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", ''.join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", ''.join(
+                traceback.format_exception(exc_type, exc_val, exc_tb)))
 
             if exc_type is IOError:
                 self.set_error("no_file_error")
                 return True
 
-            if self.data is None :
-                if self.structure is None :
-                    print(f"error {exc_val} for {self} with traceback {exc_tb}")
+            if self.data is None:
+                if self.structure is None:
+                    print(
+                        f"error {exc_val} for {self} with traceback {exc_tb}")
                     return True
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
             self.save()
             return True  # do not propagate exception
-        else :
-            if "content_matches" in self.data.columns :
+        else:
+            if self.data is None:
+                raise ValueError("")
+            if "content_matches" in self.data.columns:
                 self.set_error("comparison_success")
-            else :
+            else:
                 self.set_error("run_success")
 
         self.save()
 
     def gather_hashes(self, mode=False):
-        if mode :
-            if "hash" in self.data.columns :
+        if self.data is None:
+            raise ValueError("")
+        if mode:
+            if "hash" in self.data.columns:
                 sel = self.data.hash.isna()
                 if len(sel[sel]):
                     for index, row in tqdm(self.data.iterrows()):
-                        if row.hash is None :
-                            self.data.at[index, "hash"] = self.get_hash(row.fullpath)
+                        if row.hash is None:
+                            self.data.at[index, "hash"] = self.get_hash(
+                                row.fullpath)
                 return
         self.set_error("hashes_error")
         self.data["hash"] = self.data.fullpath.progress_apply(self.get_hash)
@@ -221,15 +235,15 @@ class FolderChecker:
                 sha1.update(content)
         return sha1.hexdigest()
 
-
-
-    
     def __str__(self):
         return f"<Folder with name {self.name} and path : {self.repo_path}>"
 
     def get_diffs(self, column, equal=True):
         def isempty(cell):
             return bool(len(cell)) if equal else not bool(len(cell))
+
+        if self.data is None:
+            raise ValueError("")
 
         selector = self.data[column].apply(isempty)
         return self.data[selector]
@@ -266,7 +280,6 @@ class FolderChecker:
         sel = identical_names.index.isin(diff_contents.index)
         return identical_names[sel]
 
-
     def dates_results(self, result, match_column):
 
         def is_most_recent(row, reference):
@@ -284,8 +297,8 @@ class FolderChecker:
             return not any(cell)
 
         result = result.copy()
-        result["most_recent"] = result.apply(is_most_recent, reference=main, axis=1)
-
+        result["most_recent"] = result.apply(
+            is_most_recent, reference=main, axis=1)
 
     def comparison_results(self):
         print(f"Report of contents for repo {self.name} at {self.repo_path}:")
@@ -308,7 +321,7 @@ class FolderComparator:
     SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
     data = None
 
-    def __init__(self, current : FolderChecker, reference: FolderChecker):
+    def __init__(self, current: FolderChecker, reference: FolderChecker):
         self.current = current
         self.reference = reference
         self.foldername = self.current.foldername
@@ -331,16 +344,15 @@ class FolderComparator:
     def compare(self, mode=False):
         self.set_error("comparison_error")
 
-        if (self.get_error() != "comparison_success" and mode) or "name_matches" not in self.data.columns :
+        if (self.get_error() != "comparison_success" and mode) or "name_matches" not in self.data.columns:
             print("Comparing names:")
             self.data["name_matches"] = self.data.relpath.progress_apply(
                 self.get_comparison, compared_data=compare_struct.data.relpath)
 
-        if (self.get_error() != "comparison_success" and mode) or "content_matches" not in self.data.columns :
+        if (self.get_error() != "comparison_success" and mode) or "content_matches" not in self.data.columns:
             print("Comparing hashes:")
             self.data["content_matches"] = self.data.hash.progress_apply(
                 self.get_comparison, compared_data=compare_struct.data.hash)
-
 
     def save(self):
         print(f"saving {self}")
@@ -368,17 +380,17 @@ class FolderMerger:
         for index, repo_path in enumerate(duplicates_repo):
             self.structs[f"child_{index}"] = FolderChecker(repo_path)
 
-        if skip_checks :
+        if skip_checks:
             return
 
         for struct in self.structs.values():
-            with struct :
+            with struct:
                 struct.run()
 
         for name, struct in self.structs.items():
             if name == "main":
                 continue
-            with struct :
+            with struct:
                 struct.compare(self.main, False)
 
     @property
@@ -390,14 +402,17 @@ class FolderMerger:
         return f"<GatherHashes with folders :\n{supps}>"
 
     def get_child(self, child_name=None):
-        if child_name is None :
-            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][0]
-        elif isinstance(child_name, int): 
-            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][child_name]
-        got = [child for name, child in self.structs.items() if child.name == child_name]
+        if child_name is None:
+            child_name = [struct.name for key,
+                          struct in self.structs.items() if key != "main"][0]
+        elif isinstance(child_name, int):
+            child_name = [struct.name for key, struct in self.structs.items(
+            ) if key != "main"][child_name]
+        got = [child for name, child in self.structs.items()
+               if child.name == child_name]
         if len(got):
             return got[0]
-        else :
+        else:
             raise ValueError(f"No child with name {child_name}")
 
     def report(self):
@@ -408,7 +423,8 @@ class FolderMerger:
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [
+                        r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
     print(data.main_struct)
     print(len(data.main_struct))
