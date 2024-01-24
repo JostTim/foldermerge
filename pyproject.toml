@@ -1,0 +1,21 @@
+[project]
+name = "foldermerge"
+version = "0.1.0"
+description = "CLI tool allowing to check and merge a \"main\" folder with older versions, removing duplicates and trying to keep main folder organization."
+authors = [
+    { name = "JostTim", email = "44769559+JostTim@users.noreply.github.com" },
+]
+dependencies = [
+    "pandas>=2.2.0",
+    "tqdm>=4.66.1",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+package-type = "library"
