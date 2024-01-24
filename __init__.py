@@ -1,5 +1,6 @@
 from . core import FolderMerger
-import logging, sys
+import logging
+import sys
 
 LOGGER = logging.getLogger()
 handler = logging.StreamHandler(sys.stdout)
@@ -14,7 +15,8 @@ def console():
     try:
         main = str(sys.argv[1])
     except IndexError:
-        raise ValueError("Must supply at least one folder, a 'main', as first argument")
+        raise ValueError(
+            "Must supply at least one folder, a 'main', as first argument")
     LOGGER.info(f"Main is {main}")
     supplementaries = []
     i = 2

@@ -41,19 +41,15 @@ class StatusFile:
         with open(self.save_path, "r") as f:
             return json.load(f)
 
-    def write(self, folder, status):
-        data = self.read_all()
+    def select_data(self, data):
 
         if isinstance(self.owner, FolderChecker):
             catergory_key = "checks"
-            object_key = "me"
         elif isinstance(self.owner, FolderComparator):
             catergory_key = "comparison"
-            object_key = self.owner.name
         else:
             raise ValueError("must be FolderChecker or FolderComparator")
 
-        # select and update with current obj dict, the key of the folder
         selection = data.get(self.owner.foldername, {})
         data.update({self.owner.foldername: selection})
 
@@ -61,17 +57,29 @@ class StatusFile:
         selection = selection.get(catergory_key, {})
         data[self.owner.foldername].update({catergory_key: selection})
 
-        # select and update with current obj dict, the key of the action (check, compare)
-        selection = selection.get(catergory_key, {})
-        data[self.owner.foldername].update({catergory_key: selection})
+        return selection
 
-        data.update(
-            {folder.name: {"status": status, "path": folder.repo_path}})
+    def write(self, status):
+        data = self.read_all()
+
+        selection = self.select_data(data)
+
+        if isinstance(self.owner, FolderChecker):
+            content = {"status": status, "path": self.owner.repo_path}
+        elif isinstance(self.owner, FolderComparator):
+            content = {"status": status}
+        else:
+            raise ValueError("must be FolderChecker or FolderComparator")
+
+        selection[self.owner.name] = content
+
         with open(self.save_path, "w", newline='\n') as f:
             json.dump(data, f, indent=4, sort_keys=True)
 
-    def read(self, folder):
-        return self.read_all().get(folder.name, {}).get("status", "not_started")
+    def read(self):
+        data = self.read_all()
+        selection = self.select_data(data)
+        return selection.get("status", "not_started")
 
 
 class FolderChecker:
@@ -80,6 +88,7 @@ class FolderChecker:
     data: pd.DataFrame | None = None
     structure = None
     error = "undefined"
+    comparisons = {}
 
     def __init__(self, repo_path: str, name: str | None = None):
         self.repo_path = repo_path
@@ -103,7 +112,7 @@ class FolderChecker:
         if self.data is None:
             return False
         self.data.to_pickle(self.save_path)
-        StatusFile(self).write(self, self.error)
+        StatusFile(self).write(self.error)
         return True
 
     def load(self):
@@ -179,7 +188,7 @@ class FolderChecker:
         self.error = error_name
 
     def get_error(self):
-        return StatusFile(self).read(self)
+        return StatusFile(self).read()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
@@ -222,6 +231,7 @@ class FolderChecker:
                                 row.fullpath)
                 return
         self.set_error("hashes_error")
+        print(f"Claculating hashes for {len(self.data)} files :")
         self.data["hash"] = self.data.fullpath.progress_apply(self.get_hash)
 
     def get_hash(self, path: str):
@@ -237,6 +247,10 @@ class FolderChecker:
 
     def __str__(self):
         return f"<Folder with name {self.name} and path : {self.repo_path}>"
+
+    def add_comparison(self, ref_folder):
+        comp = FolderComparator(self, ref_folder)
+        self.comparisons[ref_folder.name] = comp
 
     def get_diffs(self, column, equal=True):
         def isempty(cell):
@@ -319,7 +333,8 @@ class FolderChecker:
 class FolderComparator:
 
     SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
-    data = None
+    _data = None
+    error = "undefined"
 
     def __init__(self, current: FolderChecker, reference: FolderChecker):
         self.current = current
@@ -341,33 +356,63 @@ class FolderComparator:
             return matches.index.tolist()
         return []
 
+    def set_error(self, error_name):
+        self.error = error_name
+
+    def get_error(self):
+        return StatusFile(self).read()
+
     def compare(self, mode=False):
         self.set_error("comparison_error")
 
-        if (self.get_error() != "comparison_success" and mode) or "name_matches" not in self.data.columns:
+        if self.get_error() != "comparison_success":
             print("Comparing names:")
-            self.data["name_matches"] = self.data.relpath.progress_apply(
-                self.get_comparison, compared_data=compare_struct.data.relpath)
+            name_matches = self.current.data.relpath.progress_apply(
+                self.get_matches, compared_data=self.reference.data.relpath)
 
-        if (self.get_error() != "comparison_success" and mode) or "content_matches" not in self.data.columns:
+        if self.get_error() != "comparison_success":
             print("Comparing hashes:")
-            self.data["content_matches"] = self.data.hash.progress_apply(
-                self.get_comparison, compared_data=compare_struct.data.hash)
+            content_matches = self.current.data.hash.progress_apply(
+                self.get_matches, compared_data=self.reference.data.hash)
+
+        self._data = pd.DataFrame()
+        self._data.index = self.current.data.index
+        self._data["name_matches"] = name_matches
+        self._data["content_matches"] = content_matches
 
     def save(self):
         print(f"saving {self}")
-        if self.data is None:
+        if self._data is None:
             return False
-        self.data.to_pickle(self.save_path)
-        StatusFile().write(self, self.error)
+        self._data.to_pickle(self.save_path)
+        StatusFile(self).write(self.error)
         return True
 
     def load(self):
         print(f"loading {self}")
         if os.path.isfile(self.save_path):
-            self.data = pd.read_pickle(self.save_path)
+            self._data = pd.read_pickle(self.save_path)
             return
-        self.data = None
+        self._data = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            print("Traceback: ", ''.join(
+                traceback.format_exception(exc_type, exc_val, exc_tb)))
+            return True  # do not propagate exception
+        else:
+            if self._data is None:
+                raise ValueError("")
+            self.set_error("run_success")
+
+        self.save()
+
+    @property
+    def data(self):
+        return pd.concat([self.current.data, self._data], axis=1)
 
 
 class FolderMerger:
@@ -390,8 +435,10 @@ class FolderMerger:
         for name, struct in self.structs.items():
             if name == "main":
                 continue
-            with struct:
-                struct.compare(self.main, False)
+            struct.add_comparison(self.structs["main"])
+            comp = struct.comparisons[self.structs["main"].name]
+            with comp:
+                comp.compare()
 
     @property
     def main(self):
