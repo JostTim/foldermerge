@@ -25,10 +25,8 @@ def deep_hash(values):
 
 
 class StatusFile:
-
     def __init__(self, owner):
-        self.save_path = str(Path.home() / "Downloads" /
-                             "FILE_HASHES" / "status.json")
+        self.save_path = str(Path.home() / "Downloads" / "FILE_HASHES" / "status.json")
         self.make()
         self.owner = owner
 
@@ -42,7 +40,6 @@ class StatusFile:
             return json.load(f)
 
     def select_data(self, data):
-
         if isinstance(self.owner, FolderChecker):
             catergory_key = "checks"
         elif isinstance(self.owner, FolderComparator):
@@ -73,7 +70,7 @@ class StatusFile:
 
         selection[self.owner.name] = content
 
-        with open(self.save_path, "w", newline='\n') as f:
+        with open(self.save_path, "w", newline="\n") as f:
             json.dump(data, f, indent=4, sort_keys=True)
 
     def read(self):
@@ -83,7 +80,6 @@ class StatusFile:
 
 
 class FolderChecker:
-
     SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
     data: pd.DataFrame | None = None
     structure = None
@@ -123,7 +119,6 @@ class FolderChecker:
         self.data = None
 
     def gather_files(self, mode=False):
-
         self.set_error("gather_error")
 
         self.structure = []
@@ -157,21 +152,20 @@ class FolderChecker:
                     "dirs": dirs,
                     "ctime": ctime,
                     "mtime": mtime,
-                    "time": time
+                    "time": time,
                 }
 
                 file_record["uuid"] = deep_hash(file_record)
                 self.structure.append(file_record)
 
         if len(self.structure) == 0:
-            raise IOError("Found no files !")
+            raise IOError(f"Found no files in {self.repo_path}")
         else:
             if mode:
                 if self.data is None:
                     raise ValueError("")
                 temp_data = pd.DataFrame(self.structure).set_index("uuid")
-                self.data = pd.concat([self.data, temp_data]).drop_duplicates(
-                    subset=["fullpath"], keep="first")
+                self.data = pd.concat([self.data, temp_data]).drop_duplicates(subset=["fullpath"], keep="first")
             else:
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
@@ -192,8 +186,7 @@ class FolderChecker:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", ''.join(
-                traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
 
             if exc_type is IOError:
                 self.set_error("no_file_error")
@@ -201,8 +194,7 @@ class FolderChecker:
 
             if self.data is None:
                 if self.structure is None:
-                    print(
-                        f"error {exc_val} for {self} with traceback {exc_tb}")
+                    print(f"error {exc_val} for {self} with traceback {exc_tb}")
                     return True
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
@@ -227,8 +219,7 @@ class FolderChecker:
                 if len(sel[sel]):
                     for index, row in tqdm(self.data.iterrows()):
                         if row.hash is None:
-                            self.data.at[index, "hash"] = self.get_hash(
-                                row.fullpath)
+                            self.data.at[index, "hash"] = self.get_hash(row.fullpath)
                 return
         self.set_error("hashes_error")
         print(f"Claculating hashes for {len(self.data)} files :")
@@ -263,7 +254,6 @@ class FolderChecker:
         return self.data[selector]
 
     def get_identical_files(self):
-
         identical_contents = self.get_diffs("content_matches", True)
         identical_names = self.get_diffs("name_matches", True)
 
@@ -271,7 +261,6 @@ class FolderChecker:
         return identical_names[sel]
 
     def get_inexistant_files(self):
-
         diff_contents = self.get_diffs("content_matches", False)
         diff_names = self.get_diffs("name_matches", False)
 
@@ -279,7 +268,6 @@ class FolderChecker:
         return diff_names[sel]
 
     def get_moved_files(self):
-
         identical_contents = self.get_diffs("content_matches", True)
         diff_names = self.get_diffs("name_matches", False)
 
@@ -287,7 +275,6 @@ class FolderChecker:
         return diff_names[sel]
 
     def get_changed_files(self):
-
         diff_contents = self.get_diffs("content_matches", False)
         identical_names = self.get_diffs("name_matches", True)
 
@@ -295,7 +282,6 @@ class FolderChecker:
         return identical_names[sel]
 
     def dates_results(self, result, match_column):
-
         def is_most_recent(row, reference):
             ref_ix = row.name_matches[0]
             ref_row = reference.loc[ref_ix]
@@ -311,8 +297,7 @@ class FolderChecker:
             return not any(cell)
 
         result = result.copy()
-        result["most_recent"] = result.apply(
-            is_most_recent, reference=main, axis=1)
+        result["most_recent"] = result.apply(is_most_recent, reference=main, axis=1)
 
     def comparison_results(self):
         print(f"Report of contents for repo {self.name} at {self.repo_path}:")
@@ -322,16 +307,16 @@ class FolderChecker:
         moved_contents = self.get_moved_files()
         changed_contents = self.get_changed_files()
 
-        print(f" - {len(self.data)} total files found.\n"
-              f" - {len(identical_contents)} identical files (will be deleted)\n"
-              f" - {len(inexistant_contents)} inexistant files (will be copied in main)\n"
-              f" - {len(moved_contents)} moved files (same content, different location) (tbd)\n"
-              f" - {len(changed_contents)} changed files (same location, different content) (tbd)\n"
-              )
+        print(
+            f" - {len(self.data)} total files found.\n"
+            f" - {len(identical_contents)} identical files (will be deleted)\n"
+            f" - {len(inexistant_contents)} inexistant files (will be copied in main)\n"
+            f" - {len(moved_contents)} moved files (same content, different location) (tbd)\n"
+            f" - {len(changed_contents)} changed files (same location, different content) (tbd)\n"
+        )
 
 
 class FolderComparator:
-
     SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
     _data = None
     error = "undefined"
@@ -368,12 +353,14 @@ class FolderComparator:
         if self.get_error() != "comparison_success":
             print("Comparing names:")
             name_matches = self.current.data.relpath.progress_apply(
-                self.get_matches, compared_data=self.reference.data.relpath)
+                self.get_matches, compared_data=self.reference.data.relpath
+            )
 
         if self.get_error() != "comparison_success":
             print("Comparing hashes:")
             content_matches = self.current.data.hash.progress_apply(
-                self.get_matches, compared_data=self.reference.data.hash)
+                self.get_matches, compared_data=self.reference.data.hash
+            )
 
         self._data = pd.DataFrame()
         self._data.index = self.current.data.index
@@ -400,8 +387,7 @@ class FolderComparator:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", ''.join(
-                traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
             return True  # do not propagate exception
         else:
             if self._data is None:
@@ -416,9 +402,7 @@ class FolderComparator:
 
 
 class FolderMerger:
-
     def __init__(self, main_repo: str, duplicates_repo: list = [], skip_checks=False):
-
         self.structs = {}
 
         self.structs["main"] = FolderChecker(main_repo)
@@ -450,13 +434,10 @@ class FolderMerger:
 
     def get_child(self, child_name=None):
         if child_name is None:
-            child_name = [struct.name for key,
-                          struct in self.structs.items() if key != "main"][0]
+            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][0]
         elif isinstance(child_name, int):
-            child_name = [struct.name for key, struct in self.structs.items(
-            ) if key != "main"][child_name]
-        got = [child for name, child in self.structs.items()
-               if child.name == child_name]
+            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][child_name]
+        got = [child for name, child in self.structs.items() if child.name == child_name]
         if len(got):
             return got[0]
         else:
@@ -470,8 +451,7 @@ class FolderMerger:
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [
-                        r"C:\Users\Timothe\NasgoyaveOC\Projets"])
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
     print(data.main_struct)
     print(len(data.main_struct))

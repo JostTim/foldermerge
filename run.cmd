@@ -1,3 +1,2 @@
-call conda activate Inflow
-call python -m __init__ C:\Users\Timothe\Downloads\images
+call pdm run foldermerge "C:\Users\timot\OneDrive\Pictures\Samsung Gallery\DCIM\Camera" "C:\Users\timot\Documents"
 PAUSE
