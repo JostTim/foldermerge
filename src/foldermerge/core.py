@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import pandas as pd
 import hashlib
@@ -7,6 +6,13 @@ import json
 import traceback
 
 tqdm.pandas()
+
+
+def get_default_results_path():
+    return Path.home() / "Downloads" / "FILE_HASHES"
+
+
+RESULTS_PATH = get_default_results_path()
 
 
 def deep_hash(values):
@@ -26,12 +32,12 @@ def deep_hash(values):
 
 class StatusFile:
     def __init__(self, owner):
-        self.save_path = str(Path.home() / "Downloads" / "FILE_HASHES" / "status.json")
-        self.make()
+        self.save_path = Path(RESULTS_PATH) / "status.json"
+        self.makefile()
         self.owner = owner
 
-    def make(self):
-        if not os.path.isfile(self.save_path):
+    def makefile(self):
+        if not self.save_path.is_file():
             with open(self.save_path, "w") as f:
                 json.dump({}, f)
 
@@ -80,14 +86,13 @@ class StatusFile:
 
 
 class FolderChecker:
-    SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
     data: pd.DataFrame | None = None
     structure = None
     error = "undefined"
     comparisons = {}
 
-    def __init__(self, repo_path: str, name: str | None = None):
-        self.repo_path = repo_path
+    def __init__(self, repo_path: Path, name: str | None = None):
+        self.repo_path = Path(repo_path)
         self.name = self.get_save_name() if name is None else "calc_" + name
         self.foldername = self.name
         self.save_path = self.get_save_path()
@@ -95,12 +100,13 @@ class FolderChecker:
         self.load()
 
     def get_save_path(self) -> str:
-        os.makedirs(self.SAVE_FOLDER, exist_ok=True)
-        return os.path.join(self.SAVE_FOLDER, f"{self.name}.pickle")
+        save_folder = Path(RESULTS_PATH)
+        save_folder.mkdir(exist_ok=True, parents=True)
+        return save_folder / f"{self.name}.pickle"
 
     def get_save_name(self) -> str:
         sha1 = hashlib.sha1()
-        sha1.update(self.repo_path.encode())
+        sha1.update(str(self.repo_path).encode())
         return sha1.hexdigest()[0:8]
 
     def save(self):
@@ -113,7 +119,7 @@ class FolderChecker:
 
     def load(self):
         print(f"loading {self}")
-        if os.path.isfile(self.save_path):
+        if self.save_path.is_file():
             self.data = pd.read_pickle(self.save_path)
             return
         self.data = None
@@ -123,32 +129,34 @@ class FolderChecker:
 
         self.structure = []
         print(f"Finding all files in the repo {self.repo_path}")
-        for root, dirs, files in tqdm(os.walk(self.repo_path), desc="Searching"):
+        for root, dirs, files in tqdm(self.repo_path.walk(), desc="Searching"):
             if not files:
                 continue
 
-            relative_dir = os.path.relpath(root, self.repo_path)
-            dirs = relative_dir.split(os.sep)
+            relative_dir = self.repo_path.relative_to(root)
+            dirs = list(relative_dir.parts)
             dirs = [] if dirs == ["."] else dirs
 
             for file in files:
-                file_fullpath = os.path.join(root, file)
+                file = Path(file)
+                file_fullpath = Path(root) / file
                 if mode:
                     if self.data is None:
                         raise ValueError("")
                     if file_fullpath in self.data.fullpath:
                         continue
-                file_relpath = os.path.join(relative_dir, file)
-                name, ext = os.path.splitext(file)
-                ctime = os.path.getctime(file_fullpath)
-                mtime = os.path.getmtime(file_fullpath)
+                file_relpath = relative_dir / file
+                name = file.stem
+                ext = file.suffix
+                ctime = file_fullpath.stat().st_ctime
+                mtime = file_fullpath.stat().st_mtime
                 time = ctime if ctime > mtime else mtime
                 file_record = {
                     "filename": file,
                     "name": name,
                     "ext": ext,
-                    "fullpath": file_fullpath,
-                    "relpath": file_relpath,
+                    "fullpath": str(file_fullpath),
+                    "relpath": str(file_relpath),
                     "dirs": dirs,
                     "ctime": ctime,
                     "mtime": mtime,
@@ -317,7 +325,6 @@ class FolderChecker:
 
 
 class FolderComparator:
-    SAVE_FOLDER = str(Path.home() / "Downloads" / "FILE_HASHES")
     _data = None
     error = "undefined"
 
@@ -331,8 +338,9 @@ class FolderComparator:
         self.save_path = self.get_save_path()
 
     def get_save_path(self) -> str:
-        os.makedirs(self.SAVE_FOLDER, exist_ok=True)
-        return os.path.join(self.SAVE_FOLDER, f"{self.name}.pickle")
+        save_folder = Path(RESULTS_PATH)
+        save_folder.mkdir(exist_ok=True, parents=True)
+        return save_folder / f"{self.name}.pickle"
 
     def get_matches(self, cell, compared_data):
         matches = compared_data == cell
@@ -377,7 +385,7 @@ class FolderComparator:
 
     def load(self):
         print(f"loading {self}")
-        if os.path.isfile(self.save_path):
+        if self.save_path.is_file():
             self._data = pd.read_pickle(self.save_path)
             return
         self._data = None
