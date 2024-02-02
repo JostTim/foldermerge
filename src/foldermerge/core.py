@@ -99,7 +99,7 @@ class FolderChecker:
 
         self.load()
 
-    def get_save_path(self) -> str:
+    def get_save_path(self) -> Path:
         save_folder = Path(RESULTS_PATH)
         save_folder.mkdir(exist_ok=True, parents=True)
         return save_folder / f"{self.name}.pickle"
@@ -173,7 +173,8 @@ class FolderChecker:
                 if self.data is None:
                     raise ValueError("")
                 temp_data = pd.DataFrame(self.structure).set_index("uuid")
-                self.data = pd.concat([self.data, temp_data]).drop_duplicates(subset=["fullpath"], keep="first")
+                self.data = pd.concat([self.data, temp_data]).drop_duplicates(
+                    subset=["fullpath"], keep="first")
             else:
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
@@ -194,7 +195,8 @@ class FolderChecker:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(
+                traceback.format_exception(exc_type, exc_val, exc_tb)))
 
             if exc_type is IOError:
                 self.set_error("no_file_error")
@@ -202,7 +204,8 @@ class FolderChecker:
 
             if self.data is None:
                 if self.structure is None:
-                    print(f"error {exc_val} for {self} with traceback {exc_tb}")
+                    print(
+                        f"error {exc_val} for {self} with traceback {exc_tb}")
                     return True
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
@@ -227,7 +230,8 @@ class FolderChecker:
                 if len(sel[sel]):
                     for index, row in tqdm(self.data.iterrows()):
                         if row.hash is None:
-                            self.data.at[index, "hash"] = self.get_hash(row.fullpath)
+                            self.data.at[index, "hash"] = self.get_hash(
+                                row.fullpath)
                 return
         self.set_error("hashes_error")
         print(f"Claculating hashes for {len(self.data)} files :")
@@ -305,7 +309,8 @@ class FolderChecker:
             return not any(cell)
 
         result = result.copy()
-        result["most_recent"] = result.apply(is_most_recent, reference=main, axis=1)
+        result["most_recent"] = result.apply(
+            is_most_recent, reference=main, axis=1)
 
     def comparison_results(self):
         print(f"Report of contents for repo {self.name} at {self.repo_path}:")
@@ -395,7 +400,8 @@ class FolderComparator:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(
+                traceback.format_exception(exc_type, exc_val, exc_tb)))
             return True  # do not propagate exception
         else:
             if self._data is None:
@@ -442,10 +448,13 @@ class FolderMerger:
 
     def get_child(self, child_name=None):
         if child_name is None:
-            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][0]
+            child_name = [struct.name for key,
+                          struct in self.structs.items() if key != "main"][0]
         elif isinstance(child_name, int):
-            child_name = [struct.name for key, struct in self.structs.items() if key != "main"][child_name]
-        got = [child for name, child in self.structs.items() if child.name == child_name]
+            child_name = [struct.name for key, struct in self.structs.items(
+            ) if key != "main"][child_name]
+        got = [child for name, child in self.structs.items()
+               if child.name == child_name]
         if len(got):
             return got[0]
         else:
@@ -459,7 +468,8 @@ class FolderMerger:
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [
+                        r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
     print(data.main_struct)
     print(len(data.main_struct))

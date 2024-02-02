@@ -22,6 +22,7 @@ dev = [
     "pytest>=7.4.4",
     "tox-pdm>=0.7.2",
     "pytest-cov>=4.1.0",
+    "hypothesis>=6.97.4",
 ]
 
 [project.scripts]
