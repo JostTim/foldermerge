@@ -91,7 +91,7 @@ class FolderChecker:
     error = "undefined"
     comparisons = {}
 
-    def __init__(self, repo_path: Path, name: str | None = None):
+    def __init__(self, repo_path: Path | str, name: str | None = None):
         self.repo_path = Path(repo_path)
         self.name = self.get_save_name() if name is None else "calc_" + name
         self.foldername = self.name
@@ -196,27 +196,41 @@ class FolderChecker:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             print("Traceback: ", "".join(
-                traceback.format_exception(exc_type, exc_val, exc_tb)))
+                traceback.format_exception(exc_type, exc_val, exc_tb))
+            )
 
             if exc_type is IOError:
                 self.set_error("no_file_error")
                 return True
 
             if self.data is None:
-                if self.structure is None:
+                # data variable was not generated, investigate reasons
+                if self.structure is None or len(self.structure) == 0:
+                    # structure variable (pre-requisite of data) was also not set, crash was quite early
+                    if not self.repo_path.is_dir():
+                        # crash was due to repo not existing
+                        raise IOError(
+                            f"The folder {self.repo_path} does not exist")
+                        # crash was due to another reason, logg it and raise
                     print(
                         f"error {exc_val} for {self} with traceback {exc_tb}")
-                    return True
+                    return True  # propagate exception
+
+                # structure exists, so build a (probably partial) data variable from it and save
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
             self.save()
             return True  # do not propagate exception
         else:
+            # no problem occured
             if self.data is None:
+                # data is none so either no class method was called in the context or a weird situation occured. Raising
                 raise ValueError("")
             if "content_matches" in self.data.columns:
+                # success case for partial run (first file info gathering part)
                 self.set_error("comparison_success")
             else:
+                # success case for hash calculation part from file contents
                 self.set_error("run_success")
 
         self.save()
@@ -255,79 +269,6 @@ class FolderChecker:
         comp = FolderComparator(self, ref_folder)
         self.comparisons[ref_folder.name] = comp
 
-    def get_diffs(self, column, equal=True):
-        def isempty(cell):
-            return bool(len(cell)) if equal else not bool(len(cell))
-
-        if self.data is None:
-            raise ValueError("")
-
-        selector = self.data[column].apply(isempty)
-        return self.data[selector]
-
-    def get_identical_files(self):
-        identical_contents = self.get_diffs("content_matches", True)
-        identical_names = self.get_diffs("name_matches", True)
-
-        sel = identical_names.index.isin(identical_contents.index)
-        return identical_names[sel]
-
-    def get_inexistant_files(self):
-        diff_contents = self.get_diffs("content_matches", False)
-        diff_names = self.get_diffs("name_matches", False)
-
-        sel = diff_names.index.isin(diff_contents.index)
-        return diff_names[sel]
-
-    def get_moved_files(self):
-        identical_contents = self.get_diffs("content_matches", True)
-        diff_names = self.get_diffs("name_matches", False)
-
-        sel = diff_names.index.isin(identical_contents.index)
-        return diff_names[sel]
-
-    def get_changed_files(self):
-        diff_contents = self.get_diffs("content_matches", False)
-        identical_names = self.get_diffs("name_matches", True)
-
-        sel = identical_names.index.isin(diff_contents.index)
-        return identical_names[sel]
-
-    def dates_results(self, result, match_column):
-        def is_most_recent(row, reference):
-            ref_ix = row.name_matches[0]
-            ref_row = reference.loc[ref_ix]
-
-            return (row.ctime > ref_row.ctime, row.mtime > ref_row.mtime, row.time > ref_row.time)
-
-        def most_recent_no_ambiguity(cell):
-            # returns True if all the metric are more recent in the child vs main. Otherwise, False
-            return all(cell)
-
-        def most_old_no_ambiguity(cell):
-            # returns True if any of the metric is more recent in the child vs main. Otherwise False
-            return not any(cell)
-
-        result = result.copy()
-        result["most_recent"] = result.apply(
-            is_most_recent, reference=main, axis=1)
-
-    def comparison_results(self):
-        print(f"Report of contents for repo {self.name} at {self.repo_path}:")
-
-        identical_contents = self.get_identical_files()
-        inexistant_contents = self.get_inexistant_files()
-        moved_contents = self.get_moved_files()
-        changed_contents = self.get_changed_files()
-
-        print(
-            f" - {len(self.data)} total files found.\n"
-            f" - {len(identical_contents)} identical files (will be deleted)\n"
-            f" - {len(inexistant_contents)} inexistant files (will be copied in main)\n"
-            f" - {len(moved_contents)} moved files (same content, different location) (tbd)\n"
-            f" - {len(changed_contents)} changed files (same location, different content) (tbd)\n"
-        )
-
 
 class FolderComparator:
     _data = None
@@ -342,7 +283,7 @@ class FolderComparator:
 
         self.save_path = self.get_save_path()
 
-    def get_save_path(self) -> str:
+    def get_save_path(self) -> Path:
         save_folder = Path(RESULTS_PATH)
         save_folder.mkdir(exist_ok=True, parents=True)
         return save_folder / f"{self.name}.pickle"
@@ -362,6 +303,10 @@ class FolderComparator:
 
     def compare(self, mode=False):
         self.set_error("comparison_error")
+
+        if self.current.data is None or self.reference.data is None:
+            raise ValueError(
+                "Cannot compare with improperly instanciated FolderChecker")
 
         if self.get_error() != "comparison_success":
             print("Comparing names:")
@@ -412,11 +357,92 @@ class FolderComparator:
 
     @property
     def data(self):
+        if self.current.data is None or self._data is None:
+            raise ValueError(
+                "Cannot load composite data from two FolderCheckers that are improperly instanciated")
         return pd.concat([self.current.data, self._data], axis=1)
+
+    def _get_diffs(self, column, equal=True):
+        def isempty(cell):
+            return bool(len(cell)) if equal else not bool(len(cell))
+
+        data = self.data
+
+        selector = data[column].apply(isempty)
+        return data[selector]
+
+    def get_identical_files(self) -> pd.DataFrame:
+        identical_contents = self._get_diffs("content_matches", True)
+        identical_names = self._get_diffs("name_matches", True)
+
+        sel = identical_names.index.isin(identical_contents.index)
+        return identical_names[sel]
+
+    def get_inexistant_files(self) -> pd.DataFrame:
+        diff_contents = self._get_diffs("content_matches", False)
+        diff_names = self._get_diffs("name_matches", False)
+
+        sel = diff_names.index.isin(diff_contents.index)
+        return diff_names[sel]
+
+    def get_moved_files(self) -> pd.DataFrame:
+        identical_contents = self._get_diffs("content_matches", True)
+        diff_names = self._get_diffs("name_matches", False)
+
+        sel = diff_names.index.isin(identical_contents.index)
+        return diff_names[sel]
+
+    def get_changed_files(self) -> pd.DataFrame:
+        diff_contents = self._get_diffs("content_matches", False)
+        identical_names = self._get_diffs("name_matches", True)
+
+        sel = identical_names.index.isin(diff_contents.index)
+        return identical_names[sel]
+
+    def dates_results(self, result: pd.DataFrame) -> pd.DataFrame:
+        def is_most_recent(row, reference):
+            ref_ix = row.name_matches[0]
+            ref_row = reference.loc[ref_ix]
+
+            return (row.ctime > ref_row.ctime, row.mtime > ref_row.mtime, row.time > ref_row.time)
+
+        def most_recent_no_ambiguity(cell):
+            # returns True if all the metric are more recent in the child vs main. Otherwise, False
+            return all(cell)
+
+        def most_old_no_ambiguity(cell):
+            # returns True if any of the metric is more recent in the child vs main. Otherwise False
+            return not any(cell)
+
+        result = result.copy()
+        result["most_recent"] = result.apply(
+            is_most_recent, reference=self.reference.data, axis=1)
+
+        return result
+
+    def comparison_report(self) -> str:
+
+        identical_contents = self.get_identical_files()
+        inexistant_contents = self.get_inexistant_files()
+        moved_contents = self.get_moved_files()
+        changed_contents = self.get_changed_files()
+
+        return (
+            f"Report of contents for repo {self.current.name} at {self.current.repo_path}:\n
+            f" - {len(self.data)} total files found.\n"
+            f" - {len(identical_contents)} identical files (will be deleted)\n"
+            f" - {len(inexistant_contents)} inexistant files (will be copied in main)\n"
+            f" - {len(moved_contents)} moved files (same content, different location) (tbd)\n"
+            f" - {len(changed_contents)} changed files (same location, different content) (tbd)\n"
+        )
 
 
 class FolderMerger:
-    def __init__(self, main_repo: str, duplicates_repo: list = [], skip_checks=False):
+    def __init__(self, main_repo: str, duplicates_repo: str | list = [], skip_checks=False):
+
+        if not isinstance(duplicates_repo, list):
+            duplicates_repo = [duplicates_repo]
+
         self.structs = {}
 
         self.structs["main"] = FolderChecker(main_repo)
@@ -468,9 +494,9 @@ class FolderMerger:
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [
-                        r"C:\Users\Timothe\NasgoyaveOC\Projets"])
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets",
+                        [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
-    print(data.main_struct)
-    print(len(data.main_struct))
-    print(list(data.child_structs.values())[0])
+    print(data.structs["main"])
+    print(len(data.structs["main"].data))
+    print(data.structs["child_0"])
