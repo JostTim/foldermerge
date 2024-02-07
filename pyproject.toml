@@ -21,7 +21,7 @@ build-backend = "pdm.backend"
 foldermerge = "foldermerge:console"
 
 [tool.pytest.ini_options]
-addopts = "--pdbcls=IPython.terminal.debugger:TerminalPdb --cov-report html --cov"
+addopts = "--pdbcls=IPython.terminal.debugger:TerminalPdb --cov-report html --cov --junitxml=pytest_results.xml"
 testpaths = ["tests"] 
 
 [tool.pdm]
