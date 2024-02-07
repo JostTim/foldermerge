@@ -5,8 +5,11 @@ description = "CLI tool allowing to check and merge a \"main\" folder with older
 authors = [
     { name = "JostTim", email = "44769559+JostTim@users.noreply.github.com" },
 ]
-dependencies = ["pandas>=2.2.0", "tqdm>=4.66.1"]
-requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.1.4",
+    "tqdm>=4.66.1",
+]
+requires-python = "==3.12.1"
 readme = "README.md"
 license = { text = "MIT" }
 
@@ -21,7 +24,6 @@ foldermerge = "foldermerge:console"
 addopts = "--pdbcls=IPython.terminal.debugger:TerminalPdb --cov-report html --cov"
 testpaths = ["tests"] 
 
-
 [tool.pdm]
 distribution = true
 
@@ -32,6 +34,6 @@ dev = [
     "pytest-cov>=4.1.0",
     "hypothesis>=6.97.4",
     "ipdb>=0.13.13",
-    "jupyterlab>=4.0.12",
+    "jupyter>=1.0.0",
 ]
 

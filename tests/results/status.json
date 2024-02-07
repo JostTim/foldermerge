@@ -1,1 +1,23 @@
-{}
+{
+    "626ed55d": {
+        "checks": {
+            "626ed55d": {
+                "path": "c:\\Users\\Timothe\\Documents\\python_scripts\\foldermerge\\tests\\integration\\fixtures\\mainfolder",
+                "status": "run_success"
+            }
+        }
+    },
+    "fbd1a246": {
+        "checks": {
+            "fbd1a246": {
+                "path": "c:\\Users\\Timothe\\Documents\\python_scripts\\foldermerge\\tests\\integration\\fixtures\\dupefolder1",
+                "status": "run_success"
+            }
+        },
+        "comparison": {
+            "fbd1a246_vs_626ed55d": {
+                "status": "run_success"
+            }
+        }
+    }
+}

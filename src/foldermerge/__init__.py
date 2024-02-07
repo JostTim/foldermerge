@@ -1,4 +1,5 @@
 from .core import FolderMerger
+from . import custom_accessors as _
 import logging
 import sys
 
@@ -15,7 +16,8 @@ def console():
     try:
         main = str(sys.argv[1])
     except IndexError:
-        raise ValueError("Must supply at least one folder, a 'main', as first argument")
+        raise ValueError(
+            "Must supply at least one folder, a 'main', as first argument")
     LOGGER.info(f"Main is {main}")
     supplementaries = []
     i = 2

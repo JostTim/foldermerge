@@ -4,6 +4,7 @@ import hashlib
 from tqdm import tqdm
 import json
 import traceback
+from typing import List, Dict
 
 tqdm.pandas()
 
@@ -68,7 +69,7 @@ class StatusFile:
         selection = self.select_data(data)
 
         if isinstance(self.owner, FolderChecker):
-            content = {"status": status, "path": self.owner.repo_path}
+            content = {"status": status, "path": str(self.owner.repo_path)}
         elif isinstance(self.owner, FolderComparator):
             content = {"status": status}
         else:
@@ -87,15 +88,17 @@ class StatusFile:
 
 class FolderChecker:
     data: pd.DataFrame | None = None
-    structure = None
-    error = "undefined"
-    comparisons = {}
+    structure: list = []
+    error: str = "undefined"
+    comparisons: Dict[str, "FolderComparator"]
 
     def __init__(self, repo_path: Path | str, name: str | None = None):
         self.repo_path = Path(repo_path)
         self.name = self.get_save_name() if name is None else "calc_" + name
         self.foldername = self.name
         self.save_path = self.get_save_path()
+
+        self.comparisons = {}
 
         self.load()
 
@@ -133,7 +136,7 @@ class FolderChecker:
             if not files:
                 continue
 
-            relative_dir = self.repo_path.relative_to(root)
+            relative_dir = root.relative_to(self.repo_path)
             dirs = list(relative_dir.parts)
             dirs = [] if dirs == ["."] else dirs
 
@@ -152,7 +155,7 @@ class FolderChecker:
                 mtime = file_fullpath.stat().st_mtime
                 time = ctime if ctime > mtime else mtime
                 file_record = {
-                    "filename": file,
+                    "filename": str(file),
                     "name": name,
                     "ext": ext,
                     "fullpath": str(file_fullpath),
@@ -266,13 +269,13 @@ class FolderChecker:
         return f"<Folder with name {self.name} and path : {self.repo_path}>"
 
     def add_comparison(self, ref_folder):
-        comp = FolderComparator(self, ref_folder)
-        self.comparisons[ref_folder.name] = comp
+        comparison = FolderComparator(self, ref_folder)
+        self.comparisons[ref_folder.name] = comparison
 
 
 class FolderComparator:
-    _data = None
-    error = "undefined"
+    _data: pd.DataFrame | None = None
+    error: str = "undefined"
 
     def __init__(self, current: FolderChecker, reference: FolderChecker):
         self.current = current
@@ -282,6 +285,8 @@ class FolderComparator:
         self.name = self.current.name + "_vs_" + self.reference.name
 
         self.save_path = self.get_save_path()
+
+        self.load()
 
     def get_save_path(self) -> Path:
         save_folder = Path(RESULTS_PATH)
@@ -302,6 +307,9 @@ class FolderComparator:
         return StatusFile(self).read()
 
     def compare(self, mode=False):
+        if self._data is not None:
+            return
+
         self.set_error("comparison_error")
 
         if self.current.data is None or self.reference.data is None:
@@ -362,11 +370,11 @@ class FolderComparator:
                 "Cannot load composite data from two FolderCheckers that are improperly instanciated")
         return pd.concat([self.current.data, self._data], axis=1)
 
-    def _get_diffs(self, column, equal=True):
+    def _get_diffs(self, column: str, equal=True):
         def isempty(cell):
             return bool(len(cell)) if equal else not bool(len(cell))
 
-        data = self.data
+        data = self.data  # build data merge
 
         selector = data[column].apply(isempty)
         return data[selector]
@@ -428,7 +436,7 @@ class FolderComparator:
         changed_contents = self.get_changed_files()
 
         return (
-            f"Report of contents for repo {self.current.name} at {self.current.repo_path}:\n
+            f"Report of contents for repo {self.current.name} at {self.current.repo_path}:\n"
             f" - {len(self.data)} total files found.\n"
             f" - {len(identical_contents)} identical files (will be deleted)\n"
             f" - {len(inexistant_contents)} inexistant files (will be copied in main)\n"
@@ -437,66 +445,100 @@ class FolderComparator:
         )
 
 
+class Folders(dict):
+
+    def __init__(self, dico={}):
+        super().__init__(dico)
+
+    def __getitem__(self, index: int | str | slice) -> FolderChecker | Dict[str, FolderChecker]:
+        if isinstance(index, int):
+            return super().__getitem__(list(self.keys())[index])
+        elif isinstance(index, slice):
+            dico = {}
+            for ix in range(index.start or 0, index.stop or len(self), index.step or 1):
+                value = self[ix]
+                if isinstance(value, FolderChecker):
+                    dico[value.name] = value
+            return dico
+        else:
+            return super().__getitem__(index)
+
+    def __setitem__(self, index: int | str, value: FolderChecker):
+        if isinstance(index, int):
+            index = value.name
+        super().__setitem__(index, value)
+
+    def child(self, number: int) -> FolderChecker:
+        out = self[number + 1]
+        if not isinstance(out, FolderChecker):
+            raise ValueError
+        return out
+
+    def named(self, reference: str) -> FolderChecker:
+        out = self[reference]
+        if not isinstance(out, FolderChecker):
+            raise ValueError
+        return out
+
+    def add(self, folder: FolderChecker):
+        self[folder.name] = folder
+
+    @property
+    def main(self) -> FolderChecker:
+        out = self[0]
+        if not isinstance(out, FolderChecker):
+            raise ValueError
+        return out
+
+    @property
+    def childs(self) -> Dict[str, FolderChecker]:
+        out = self[1:]
+        if not isinstance(out, dict):
+            raise ValueError
+        return out
+
+
 class FolderMerger:
-    def __init__(self, main_repo: str, duplicates_repo: str | list = [], skip_checks=False):
+    def __init__(self, main_repo: str | Path, duplicates_repo: str | Path | List[str | Path] = [], skip_checks=False):
 
         if not isinstance(duplicates_repo, list):
             duplicates_repo = [duplicates_repo]
 
-        self.structs = {}
+        self.folders = Folders()
 
-        self.structs["main"] = FolderChecker(main_repo)
-        for index, repo_path in enumerate(duplicates_repo):
-            self.structs[f"child_{index}"] = FolderChecker(repo_path)
+        self.folders.add(FolderChecker(main_repo))
+        for repo_path in duplicates_repo:
+            self.folders.add(FolderChecker(repo_path))
 
         if skip_checks:
             return
 
-        for struct in self.structs.values():
-            with struct:
-                struct.run()
+        for folder_checker in self.folders.values():
+            with folder_checker:
+                folder_checker.run()
 
-        for name, struct in self.structs.items():
-            if name == "main":
-                continue
-            struct.add_comparison(self.structs["main"])
-            comp = struct.comparisons[self.structs["main"].name]
-            with comp:
-                comp.compare()
-
-    @property
-    def main(self):
-        return self.structs["main"]
+        for folder_checker in self.folders.childs.values():
+            folder_checker.add_comparison(self.folders.main)
+            folder_comparator = folder_checker.comparisons[self.folders.main.name]
+            with folder_comparator:
+                folder_comparator.compare()
 
     def __str__(self):
-        supps = "\n".join([f"{struct}" for struct in self.structs])
+        supps = "\n".join([f"{folder}" for folder in self.folders])
         return f"<GatherHashes with folders :\n{supps}>"
 
-    def get_child(self, child_name=None):
-        if child_name is None:
-            child_name = [struct.name for key,
-                          struct in self.structs.items() if key != "main"][0]
-        elif isinstance(child_name, int):
-            child_name = [struct.name for key, struct in self.structs.items(
-            ) if key != "main"][child_name]
-        got = [child for name, child in self.structs.items()
-               if child.name == child_name]
-        if len(got):
-            return got[0]
-        else:
-            raise ValueError(f"No child with name {child_name}")
-
     def report(self):
-        for name, struct in self.structs.items():
-            if name == "main":
-                continue
-            struct.comparison_results()
+        reports = []
+        for folder in self.folders.childs.values():
+            reports.append(
+                folder.comparisons[self.folders.main.name].comparison_report())
+        return reports
 
 
 if __name__ == "__main__":
     data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets",
                         [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
-    print(data.structs["main"])
-    print(len(data.structs["main"].data))
-    print(data.structs["child_0"])
+    print(data.folders.main)
+    print(len(data.folders.main.data))
+    print(data.folders.child(0))
