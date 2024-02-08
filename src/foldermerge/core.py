@@ -16,6 +16,13 @@ def get_default_results_path():
 RESULTS_PATH = get_default_results_path()
 
 
+def clear_results():
+    results_path = Path(RESULTS_PATH)
+    for item in results_path.iterdir():
+        if item.is_file():
+            item.unlink()
+
+
 def deep_hash(values):
     try:
         return hash(values)
@@ -87,7 +94,7 @@ class StatusFile:
 
 
 class FolderChecker:
-    data: pd.DataFrame | None = None
+    data: pd.DataFrame
     structure: list = []
     error: str = "undefined"
     comparisons: Dict[str, "FolderComparator"]
@@ -97,7 +104,6 @@ class FolderChecker:
         self.name = self.get_save_name() if name is None else "calc_" + name
         self.foldername = self.name
         self.save_path = self.get_save_path()
-
         self.comparisons = {}
 
         self.load()
@@ -114,7 +120,7 @@ class FolderChecker:
 
     def save(self):
         print(f"saving {self}")
-        if self.data is None:
+        if self.data.empty:
             return False
         self.data.to_pickle(self.save_path)
         StatusFile(self).write(self.error)
@@ -125,7 +131,7 @@ class FolderChecker:
         if self.save_path.is_file():
             self.data = pd.read_pickle(self.save_path)
             return
-        self.data = None
+        self.data = pd.DataFrame()
 
     def gather_files(self, mode=False):
         self.set_error("gather_error")
@@ -144,7 +150,7 @@ class FolderChecker:
                 file = Path(file)
                 file_fullpath = Path(root) / file
                 if mode:
-                    if self.data is None:
+                    if self.data.empty:
                         raise ValueError("")
                     if file_fullpath in self.data.fullpath:
                         continue
@@ -173,7 +179,7 @@ class FolderChecker:
             raise IOError(f"Found no files in {self.repo_path}")
         else:
             if mode:
-                if self.data is None:
+                if self.data.empty:
                     raise ValueError("")
                 temp_data = pd.DataFrame(self.structure).set_index("uuid")
                 self.data = pd.concat([self.data, temp_data]).drop_duplicates(
@@ -186,7 +192,7 @@ class FolderChecker:
 
     def run(self):
         if "success" not in self.get_error() and "comparison" not in self.get_error():
-            mode = False if self.data is None else True
+            mode = False if self.data.empty else True
             self.gather_files(mode)
             self.gather_hashes(mode)
 
@@ -206,7 +212,7 @@ class FolderChecker:
                 self.set_error("no_file_error")
                 return True
 
-            if self.data is None:
+            if self.data.empty:
                 # data variable was not generated, investigate reasons
                 if self.structure is None or len(self.structure) == 0:
                     # structure variable (pre-requisite of data) was also not set, crash was quite early
@@ -226,7 +232,7 @@ class FolderChecker:
             return True  # do not propagate exception
         else:
             # no problem occured
-            if self.data is None:
+            if self.data.empty:
                 # data is none so either no class method was called in the context or a weird situation occured. Raising
                 raise ValueError("")
             if "content_matches" in self.data.columns:
@@ -239,7 +245,7 @@ class FolderChecker:
         self.save()
 
     def gather_hashes(self, mode=False):
-        if self.data is None:
+        if self.data.empty:
             raise ValueError("")
         if mode:
             if "hash" in self.data.columns:
@@ -266,7 +272,7 @@ class FolderChecker:
         return sha1.hexdigest()
 
     def __str__(self):
-        return f"<Folder with name {self.name} and path : {self.repo_path}>"
+        return f"<FolderChecker {self.name} at {self.repo_path}>"
 
     def add_comparison(self, ref_folder):
         comparison = FolderComparator(self, ref_folder)
@@ -274,7 +280,7 @@ class FolderChecker:
 
 
 class FolderComparator:
-    _data: pd.DataFrame | None = None
+    _data: pd.DataFrame
     error: str = "undefined"
 
     def __init__(self, current: FolderChecker, reference: FolderChecker):
@@ -307,7 +313,7 @@ class FolderComparator:
         return StatusFile(self).read()
 
     def compare(self, mode=False):
-        if self._data is not None:
+        if not self._data.empty:
             return
 
         self.set_error("comparison_error")
@@ -335,7 +341,7 @@ class FolderComparator:
 
     def save(self):
         print(f"saving {self}")
-        if self._data is None:
+        if self._data.empty:
             return False
         self._data.to_pickle(self.save_path)
         StatusFile(self).write(self.error)
@@ -346,7 +352,7 @@ class FolderComparator:
         if self.save_path.is_file():
             self._data = pd.read_pickle(self.save_path)
             return
-        self._data = None
+        self._data = pd.DataFrame()
 
     def __enter__(self):
         return self
@@ -357,7 +363,7 @@ class FolderComparator:
                 traceback.format_exception(exc_type, exc_val, exc_tb)))
             return True  # do not propagate exception
         else:
-            if self._data is None:
+            if self._data.empty:
                 raise ValueError("")
             self.set_error("run_success")
 
@@ -365,7 +371,7 @@ class FolderComparator:
 
     @property
     def data(self):
-        if self.current.data is None or self._data is None:
+        if self.current.data is None or self._data.empty:
             raise ValueError(
                 "Cannot load composite data from two FolderCheckers that are improperly instanciated")
         return pd.concat([self.current.data, self._data], axis=1)
@@ -443,6 +449,9 @@ class FolderComparator:
             f" - {len(moved_contents)} moved files (same content, different location) (tbd)\n"
             f" - {len(changed_contents)} changed files (same location, different content) (tbd)\n"
         )
+
+    def __str__(self):
+        return f"<FolderComparator {self.name}>"
 
 
 class Folders(dict):

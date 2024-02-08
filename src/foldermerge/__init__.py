@@ -1,4 +1,4 @@
-from .core import FolderMerger
+from .core import FolderMerger, clear_results
 from . import custom_accessors as _
 import logging
 import sys
