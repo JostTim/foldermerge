@@ -166,6 +166,7 @@ class FolderChecker:
                     "ext": ext,
                     "fullpath": str(file_fullpath),
                     "relpath": str(file_relpath),
+                    "reldirpath": str(relative_dir),
                     "dirs": dirs,
                     "ctime": ctime,
                     "mtime": mtime,
@@ -182,8 +183,7 @@ class FolderChecker:
                 if self.data.empty:
                     raise ValueError("")
                 temp_data = pd.DataFrame(self.structure).set_index("uuid")
-                self.data = pd.concat([self.data, temp_data]).drop_duplicates(
-                    subset=["fullpath"], keep="first")
+                self.data = pd.concat([self.data, temp_data]).drop_duplicates(subset=["fullpath"], keep="first")
             else:
                 self.data = pd.DataFrame(self.structure).set_index("uuid")
 
@@ -204,9 +204,7 @@ class FolderChecker:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", "".join(
-                traceback.format_exception(exc_type, exc_val, exc_tb))
-            )
+            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
 
             if exc_type is IOError:
                 self.set_error("no_file_error")
@@ -218,11 +216,9 @@ class FolderChecker:
                     # structure variable (pre-requisite of data) was also not set, crash was quite early
                     if not self.repo_path.is_dir():
                         # crash was due to repo not existing
-                        raise IOError(
-                            f"The folder {self.repo_path} does not exist")
+                        raise IOError(f"The folder {self.repo_path} does not exist")
                         # crash was due to another reason, logg it and raise
-                    print(
-                        f"error {exc_val} for {self} with traceback {exc_tb}")
+                    print(f"error {exc_val} for {self} with traceback {exc_tb}")
                     return True  # propagate exception
 
                 # structure exists, so build a (probably partial) data variable from it and save
@@ -253,8 +249,7 @@ class FolderChecker:
                 if len(sel[sel]):
                     for index, row in tqdm(self.data.iterrows()):
                         if row.hash is None:
-                            self.data.at[index, "hash"] = self.get_hash(
-                                row.fullpath)
+                            self.data.at[index, "hash"] = self.get_hash(row.fullpath)
                 return
         self.set_error("hashes_error")
         print(f"Claculating hashes for {len(self.data)} files :")
@@ -319,8 +314,7 @@ class FolderComparator:
         self.set_error("comparison_error")
 
         if self.current.data is None or self.reference.data is None:
-            raise ValueError(
-                "Cannot compare with improperly instanciated FolderChecker")
+            raise ValueError("Cannot compare with improperly instanciated FolderChecker")
 
         if self.get_error() != "comparison_success":
             print("Comparing names:")
@@ -338,6 +332,8 @@ class FolderComparator:
         self._data.index = self.current.data.index
         self._data["name_matches"] = name_matches
         self._data["content_matches"] = content_matches
+
+        self._data["action"] = "undefined"
 
     def save(self):
         print(f"saving {self}")
@@ -359,8 +355,7 @@ class FolderComparator:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", "".join(
-                traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
             return True  # do not propagate exception
         else:
             if self._data.empty:
@@ -372,9 +367,10 @@ class FolderComparator:
     @property
     def data(self):
         if self.current.data is None or self._data.empty:
-            raise ValueError(
-                "Cannot load composite data from two FolderCheckers that are improperly instanciated")
-        return pd.concat([self.current.data, self._data], axis=1)
+            raise ValueError("Cannot load composite data from two FolderCheckers that are improperly instanciated")
+        _temp_data = pd.concat([self.current.data, self._data], axis=1)
+        _temp_data["reference"] = len(_temp_data) * [self.reference.data]
+        return _temp_data
 
     def _get_diffs(self, column: str, equal=True):
         def isempty(cell):
@@ -429,8 +425,7 @@ class FolderComparator:
             return not any(cell)
 
         result = result.copy()
-        result["most_recent"] = result.apply(
-            is_most_recent, reference=self.reference.data, axis=1)
+        result["most_recent"] = result.apply(is_most_recent, reference=self.reference.data, axis=1)
 
         return result
 
@@ -539,14 +534,12 @@ class FolderMerger:
     def report(self):
         reports = []
         for folder in self.folders.childs.values():
-            reports.append(
-                folder.comparisons[self.folders.main.name].comparison_report())
+            reports.append(folder.comparisons[self.folders.main.name].comparison_report())
         return reports
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets",
-                        [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
     print(data.folders.main)
     print(len(data.folders.main.data))
