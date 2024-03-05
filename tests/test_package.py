@@ -20,6 +20,20 @@ def dupefolder1(fixtures_folder):
     return fixtures_folder / "dupefolder1"
 
 
+@pytest.fixture(scope="session")
+def merger(mainfolder, dupefolder1):
+    return foldermerge.FolderMerger(mainfolder, [dupefolder1])
+
+
 class TestIntegration:
-    def test_full_pipeline(self, mainfolder, dupefolder1):
-        fm = foldermerge.FolderMerger(mainfolder, [dupefolder1])
+
+    def class_creation(self, merger):
+        merger = 
+
+
+class TestErrors:
+
+    def unknown_directory(self, fixtures_folder):
+        directory = fixtures_folder / "directory_unknown"
+        with pytest.raises(IOError):
+            foldermerge.FolderMerger(directory)

@@ -14,6 +14,11 @@ license = { text = "MIT" }
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
+[project.optional-dependencies]
+gui = [
+    "flask>=3.0.2",
+]
+
 [project.scripts]
 foldermerge = "foldermerge:console"
 
@@ -32,4 +37,5 @@ dev = [
     "hypothesis>=6.97.4",
     "ipdb>=0.13.13",
     "jupyter>=1.0.0",
+    "line-profiler>=4.1.2",
 ]

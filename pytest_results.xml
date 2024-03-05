@@ -1,1 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="0" time="0.547" timestamp="2024-02-11T19:58:14.425214" hostname="Central-White" /></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.198" timestamp="2024-03-05T01:58:11.283065" hostname="Central-White"><testcase classname="" name="tests.test_package" time="0.000"><error message="collection failure">.venv\Lib\site-packages\_pytest\python.py:537: in importtestmodule
+    mod = import_path(path, mode=importmode, root=config.rootpath)
+.venv\Lib\site-packages\_pytest\pathlib.py:567: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.752.0_x64__qbz5n2kfra8p0\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1331: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:935: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:166: in exec_module
+    source_stat, co = _rewrite_test(fn, self.config)
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:348: in _rewrite_test
+    tree = ast.parse(source, filename=strfn)
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.752.0_x64__qbz5n2kfra8p0\Lib\ast.py:52: in parse
+    return compile(source, filename, mode, flags,
+E     File "c:\Users\timot\Documents\Scripts\python\foldermerge\tests\test_package.py", line 31
+E       merger = 
+E                ^
+E   SyntaxError: invalid syntax</error></testcase></testsuite></testsuites>
