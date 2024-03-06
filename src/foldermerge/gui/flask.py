@@ -10,7 +10,8 @@ from pandas import DataFrame
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir /
+            "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -33,37 +34,40 @@ def view_report():
         print(compared_folders)
         print(refresh)
 
-        fm = FolderMerger(reference_folder, compared_folders, refresh=refresh)  # type: ignore
+        fm = FolderMerger(reference_folder, compared_folders,
+                          refresh=refresh)  # type: ignore
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [str(folder) for folder in compared_folders]
+        session["compared_folders"] = [
+            str(folder) for folder in compared_folders]
 
-        report = fm.report()
+        report = fm.report(mode="dict")
         print(report)
 
         return render_template("results.html", report=report)
     except Exception as e:
-        flash("An error occurred. Please try again.", "error")
-
-        # Redirect to the previous page
-        return redirect(url_for("index"))  # request.referrer
+        flash(f"{e} Error occurred. Please try again", "error")
+        return redirect(url_for("index"))
 
 
 @app.route("/view_inexistant_files", methods=["POST"])
 def view_inexistant_files():
     reference_folder = session.get("reference_folder", None)
-    compared_folders = session.get("compared_folders", None)
+    compared_folders = session.get("compared_folders", [])
 
     if reference_folder is None:
         return redirect(url_for("index"))
 
-    fm = FolderMerger(reference_folder, compared_folders, refresh=False)  # type: ignore
+    fm = FolderMerger(reference_folder, compared_folders,
+                      refresh=False)  # type: ignore
 
     if fm is None:
-        response = make_response("FolderMerger data not found in the session", 404)
+        response = make_response(
+            "FolderMerger data not found in the session", 404)
         return response
 
-    df = fm.folders.child(0).comparisons[fm.folders.main.name].get_inexistant_files()
+    df = fm.folders.child(
+        0).comparisons[fm.folders.main.name].get_inexistant_files()
 
     return render_template("files_view_script.js", tree_html=render_tree(get_tree(df)))
 
@@ -77,7 +81,8 @@ def get_tree(data: DataFrame) -> dict:
             if part not in current_level:
                 current_level[part] = {}
             current_level = current_level[part]
-        current_level[row["name"]] = {"fullpath": row["path"], "hash": row["hash"], "uuid": row.name}
+        current_level[row["name"]] = {
+            "fullpath": row["path"], "hash": row["hash"], "uuid": row.name}
     return tree
 
 
@@ -101,7 +106,8 @@ def render_tree(tree: dict):
                 # contents is a dictionary (subfolder)
                 html += f'<li class="folder">{folder}</li>'
                 html += '<ul class="folder-content">'
-                html += render_tree(contents)  # Recursively render subdirectories
+                # Recursively render subdirectories
+                html += render_tree(contents)
                 html += "</ul>"
         else:
             continue
