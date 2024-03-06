@@ -1,0 +1,165 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f7f7f7;
+}
+
+.foldermerge_container {
+    width: 80%;
+    max-width: 600px;
+    margin: auto;
+    text-align: center;
+    background-color: #fff;
+    padding: 40px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.title {
+    font-size: 24px;
+    color: #6e48aa;
+    margin-bottom: 20px;
+}
+
+.title a {
+    text-decoration: none;
+    color: inherit;
+    /* This will make the link use the color specified for the .title class */
+}
+
+.subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+
+.input-field {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#reference_folder {
+    margin-bottom: 15px;
+}
+
+.input-field.compared_folder {
+    margin-top: 5px;
+    animation: slideDown 0.3s ease-out;
+}
+
+.input-field.compared_folder.first_compared_folder {
+    animation: none;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.checkbox-container {
+    margin-top: 20px;
+    margin-bottom: 0px;
+}
+
+.checkbox-container input {
+    margin-right: 10px;
+}
+
+.checkbox-container label {
+    font-size: 14px;
+    color: #666;
+    vertical-align: middle;
+}
+
+.button {
+    margin: 30px;
+    padding: 15px 30px;
+    background-image: linear-gradient(to right, #6e48aa, #9d50bb);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-size: 18px;
+    z-index: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.button:hover {
+    transform: scale(1.5);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.info {
+    font-size: 14px;
+    color: #888;
+}
+
+#toast-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 10px;
+    z-index: 1050;
+}
+
+.toast {
+    background-color: #D32F2F;
+    color: white;
+    padding: 16px;
+    margin-top: 10px;
+    border-radius: 2px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    animation: fadein 0.5s, fadeout 0.5s 9.5s;
+}
+
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeout {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}

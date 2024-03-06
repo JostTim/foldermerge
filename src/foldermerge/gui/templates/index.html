@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material Style Foldable Folder Structure</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index_style.css') }}">
+</head>
+
+<body>
+    <div aria-live="polite" aria-atomic="true" style="position: relative; z-index: 1050;">
+    <div id="toast-container"></div>
+    </div>
+
+    <div class="foldermerge_container" id="foldermerge_container">
+        <div class="title"><a href="https://github.com/JostTim/foldermerge">FolderMerge</a></div>
+        <div class="subtitle">Your repository cleaning helper</div>
+        <form method="post" action="/view_results">
+            <input type="text" name="reference_folder" id="reference_folder" class="input-field"
+                placeholder="Enter your reference folder path here">
+            <!-- Hidden field to store concatenated paths -->
+            <input type="hidden" name="compared_folders" id="compared_folders" />
+
+            <!-- Multiple inputs for compared folders -->
+            <div id="compared_folders_list">
+                <input type="text" name="compared_folder_0" class="input-field compared_folder first_compared_folder"
+                    placeholder="Enter a compared folder path here" />
+                <!-- Additional inputs can be added dynamically -->
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" name="refresh" value="true" id="refresh" />
+                <label for="refresh">Refresh ?</label>
+            </div>
+
+            <input type="submit" value="View Report" class="button" />
+        </form>
+        <div class="info">
+            Write or copy paste folder paths into the fields above.
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='js/index_script.js') }}"></script>
+    <script type="text/javascript">
+        // Pass flash messages to a JavaScript variable
+        var flashMessages = {{ get_flashed_messages(with_categories = true) | tojson }};
+        console.log(flashMessages)
+    </script>
+</body>
+
+
+
+</html>

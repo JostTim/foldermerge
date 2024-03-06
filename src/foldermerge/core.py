@@ -638,6 +638,12 @@ class FolderMerger:
             reports.append(folder.comparisons[self.folders.main.name].comparison_report())
         return reports
 
+    def serialize(self):
+        return {
+            "reference_folder": self.folders.main.repo_path,
+            "compared_folders": [child.repo_path for child in self.folders.childs.values()],
+        }
+
 
 if __name__ == "__main__":
     data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
