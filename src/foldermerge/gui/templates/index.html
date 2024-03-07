@@ -10,22 +10,36 @@
 
 <body>
     <div aria-live="polite" aria-atomic="true" style="position: relative; z-index: 1050;">
-    <div id="toast-container"></div>
+        <div id="toast-container"></div>
     </div>
 
-    <div class="foldermerge_container" id="foldermerge_container">
+    <div class="shadowborder_container">
         <div class="title"><a href="https://github.com/JostTim/foldermerge">FolderMerge</a></div>
         <div class="subtitle">Your repository cleaning helper</div>
         <form method="post" action="/view_results">
             <input type="text" name="reference_folder" id="reference_folder" class="input-field"
-                placeholder="Enter your reference folder path here">
+                placeholder="Enter your reference folder path here" {% if reference_folder %}
+                value="{{ reference_folder }}" {% endif %}>
             <!-- Hidden field to store concatenated paths -->
             <input type="hidden" name="compared_folders" id="compared_folders" />
 
             <!-- Multiple inputs for compared folders -->
             <div id="compared_folders_list">
+                {%if compared_folders%}
+                    {% set num_folders = compared_folders | length %}
+                    {%for folder in compared_folders%}
+                        {%if folder %}
+                        <input type="text" name="compared_folder_{{ loop.index0 }}" class="input-field compared_folder first_compared_folder"
+                            placeholder="Enter a compared folder path here" 
+                        value="{{ folder }}"/>
+                        {% endif %}
+                    {%endfor%}
+                    <input type="text" name="compared_folder_{{ num_folders + 1 }}" class="input-field compared_folder first_compared_folder"
+                    placeholder="Enter a compared folder path here"/>
+                {%else%}
                 <input type="text" name="compared_folder_0" class="input-field compared_folder first_compared_folder"
                     placeholder="Enter a compared folder path here" />
+                {%endif%}
                 <!-- Additional inputs can be added dynamically -->
             </div>
 

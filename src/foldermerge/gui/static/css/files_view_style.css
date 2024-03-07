@@ -67,3 +67,29 @@ folder-structure .category_value {
 .folder-structure .folder.open+.folder-content {
     display: block;
 }
+
+.ribbon {
+    background-color: #f0f0f0;
+    padding: 10px;
+    text-align: center;
+    font-size: 1em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.home-button {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    background-color: #e0e0e0;
+    border: none;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-size: 1em;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.home-button:hover {
+    background-color: #d5d5d5;
+}

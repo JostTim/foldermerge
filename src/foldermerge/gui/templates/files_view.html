@@ -4,14 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Material Style Foldable Folder Structure</title>
+    <title>Repository View</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/files_view_style.css') }}">
 </head>
 
 <body>
+    <div class="ribbon">
+        <a href="{{ url_for('index') }}" class="home-button">Home</a>
+        Repository: <strong>{{ current_folder }}</strong>
+        {% if reference_folder %}
+        &nbsp;| Compared with: <strong>{{ reference_folder }}</strong>
+        {% endif %}
+        &nbsp;| Selection: <strong>{{ selection }}</strong>
+    </div>
     <div class="structure-viewer">
         <ul class="folder-structure">
-            {{tree_html}}
+            {{ tree_html | safe }}
         </ul>
     </div>
     <script src="{{ url_for('static', filename='js/files_view_script.js') }}"></script>

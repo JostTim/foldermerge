@@ -113,9 +113,13 @@ function showToast(message) {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    var initialInput = document.querySelector('#compared_folders_list .compared_folder');
-    initialInput.addEventListener('input', handleComparedFolderInput);
-    initialInput.addEventListener('keypress', validatePathInput);
+    var comparedFolders = document.querySelectorAll('#compared_folders_list .compared_folder');
+
+    comparedFolders.forEach(function (input) {
+        input.addEventListener('input', handleComparedFolderInput);
+        input.addEventListener('keypress', validatePathInput);
+    });
+
     if (flashMessages.length > 0) {
         flashMessages.forEach(function (flash) {
             if (flash[0] === 'error') {

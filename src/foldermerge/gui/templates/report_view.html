@@ -8,16 +8,39 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index_style.css') }}">
 </head>
 
-
 <body>
-    <div class = "foldermerge_container">
-    {{ for folder in report }}
-        <div>
-            <table>
-                
-            </table>
+    <a href="{{ url_for('index') }}" class="home-button">Home</a>
+
+    <form class="vertical_display_container" method="post" action="view_files">
+        <input type="hidden" name="folder_selection" id="folder_selection_field" value="">
+        <input type="hidden" name="files_selection" id="files_selection_field" value="">
+
+        <div class="shadowborder_container flex">
+            <div class="title">Comparison Report</div>
+            <div class="subtitle">With Reference folder<br><b>{{ reference_report["repo_path"] }}</b></div>
+            <div class="horizontal_flex_block" onclick="submitFormWithValue('{{ reference_report['name'] }}','all')">
+                <div class="file_count_description">Total files found</div>
+                <div class="file_count">{{reference_report["total_files"]}}</div>
+            </div>
         </div>
-    {{ endfor }}
-    </div>
+        {% if report %}
+            {% for folder in report %}
+            <div class="shadowborder_container unconstrained">
+                <div class="subtitle">With compared folder<br><b>{{ folder["compared_repo"] }}</b></div>
+                <div class="flexbox_horizontal_container">
+
+                    {% for key, values in categories_legend.items() %}
+                    <div class="horizontal_flex_block" onclick="submitFormWithValue('{{ folder['name'] }}', '{{ values['selection'] }}')">
+                        <div class="file_count_description">{{values['description']}}</div>
+                        <div class="file_count">{{folder[key]}}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </form>
+    <script src="{{ url_for('static', filename='js/report_view_script.js') }}"></script>
 </body>
+
 </html>

@@ -3,15 +3,15 @@ from json import loads as json_loads
 from os import urandom
 from datetime import timedelta
 from pathlib import Path
-from foldermerge.core import FolderMerger
+from foldermerge.core import FolderMerger, FolderChecker, FolderComparator
 from webbrowser import open_new as open_new_webbrowser
 from threading import Timer
 from pandas import DataFrame
+from traceback import format_exc
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir /
-            "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -19,11 +19,21 @@ app.permanent_session_lifetime = timedelta(minutes=5)
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    reference_folder = session.get("reference_folder", None)
+    compared_folders = session.get("compared_folders", [])
+    return render_template(
+        "index.html",
+        compared_folders=compared_folders,
+        reference_folder=reference_folder,
+    )
 
 
 @app.route("/view_results", methods=["POST"])
 def view_report():
+    if not request.form["reference_folder"]:
+        flash("A reference folder wasn't selected. Please select one.", "error")
+        return redirect(url_for("index"))
+
     try:
         reference_folder = Path(request.form["reference_folder"])
         compared_folders = request.form.get("compared_folders", "")
@@ -34,42 +44,69 @@ def view_report():
         print(compared_folders)
         print(refresh)
 
-        fm = FolderMerger(reference_folder, compared_folders,
-                          refresh=refresh)  # type: ignore
+        fm = FolderMerger(reference_folder, compared_folders, refresh=refresh)  # type: ignore
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [
-            str(folder) for folder in compared_folders]
+        session["compared_folders"] = [str(folder) for folder in compared_folders]
 
+        reference_report = fm.folders.main.report(mode="dict")
         report = fm.report(mode="dict")
         print(report)
 
-        return render_template("report_view.html", report=report)
+        categories_legend = {
+            "total_files": {"description": "All files found", "selection": "all"},
+            "identical_content": {
+                "description": "Files exiting in reference (name & content matches)",
+                "selection": "identical",
+            },
+            "inexistant_content": {"description": "Files inexistant in reference", "selection": "inexistant"},
+            "moved_contents": {"description": "Moved files (content matches)", "selection": "moved"},
+            "changed_contents": {"description": "Modified content files (name matches)", "selection": "changed"},
+        }
+
+        return render_template(
+            "report_view.html", report=report, reference_report=reference_report, categories_legend=categories_legend
+        )
     except Exception as e:
+        tb = format_exc()
+        print(tb)
+
         flash(f"{e} Error occurred. Please try again", "error")
-        return redirect(url_for("index"))
+        # return redirect(url_for("index"))
+        return render_template("index.html")
 
 
-@app.route("/view_inexistant_files", methods=["POST"])
-def view_inexistant_files():
+@app.route("/view_files", methods=["POST"])
+def view_files():
     reference_folder = session.get("reference_folder", None)
     compared_folders = session.get("compared_folders", [])
 
+    folder_selection = request.form["folder_selection"]
+    files_selection = request.form["files_selection"]
+    print(folder_selection)
+    print(files_selection)
+
     if reference_folder is None:
+        flash("A reference folder wasn't selected. Please select one.", "error")
         return redirect(url_for("index"))
 
-    fm = FolderMerger(reference_folder, compared_folders,
-                      refresh=False)  # type: ignore
+    fm = FolderMerger(reference_folder, compared_folders, refresh=False)
 
-    if fm is None:
-        response = make_response(
-            "FolderMerger data not found in the session", 404)
-        return response
+    folder = fm.folders[folder_selection]
 
-    df = fm.folders.child(
-        0).comparisons[fm.folders.main.name].get_inexistant_files()
+    if folder.is_reference:  # type: ignore
+        df = folder.data  # type: ignore
+        reference_folder = None
+    else:
+        df = folder.comparisons[fm.folders.main.name].get_files(files_selection)  # type: ignore
 
-    return render_template("files_view_script.js", tree_html=render_tree(get_tree(df)))
+    return render_template(
+        "files_view.html",
+        tree_html=render_tree(get_tree(df)),
+        current_folder=folder.repo_path,  # type:ignore
+        reference_folder=reference_folder,
+        selection=files_selection,
+    )
 
 
 def get_tree(data: DataFrame) -> dict:
@@ -81,8 +118,7 @@ def get_tree(data: DataFrame) -> dict:
             if part not in current_level:
                 current_level[part] = {}
             current_level = current_level[part]
-        current_level[row["name"]] = {
-            "fullpath": row["path"], "hash": row["hash"], "uuid": row.name}
+        current_level[row["name"]] = {"fullpath": row["fullpath"], "hash": row["hash"], "uuid": row.name}
     return tree
 
 
