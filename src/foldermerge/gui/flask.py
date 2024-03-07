@@ -44,7 +44,7 @@ def view_report():
         report = fm.report(mode="dict")
         print(report)
 
-        return render_template("results.html", report=report)
+        return render_template("report_view.html", report=report)
     except Exception as e:
         flash(f"{e} Error occurred. Please try again", "error")
         return redirect(url_for("index"))
