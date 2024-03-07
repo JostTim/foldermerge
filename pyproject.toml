@@ -15,9 +15,7 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [project.optional-dependencies]
-gui = [
-    "flask>=3.0.2",
-]
+gui = ["flask>=3.0.2"]
 
 [project.scripts]
 foldermerge = "foldermerge:console"
@@ -27,6 +25,13 @@ addopts = "--pdbcls=IPython.terminal.debugger:TerminalPdb --cov-report html --co
 testpaths = ["tests"]
 
 [tool.pdm]
+includes = [
+    "src/foldermerge/*.py",   # Include all Python files in src/my_package
+    "src/foldermerge/*.html", # include files for the gui
+    "src/foldermerge/*.css",
+    "src/foldermerge/*.js",
+    "LICENSE",                # Include the LICENSE file
+]
 distribution = true
 
 [tool.pdm.dev-dependencies]
