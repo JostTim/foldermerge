@@ -11,7 +11,8 @@ from traceback import format_exc
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir /
+            "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -44,10 +45,12 @@ def view_report():
         print(compared_folders)
         print(refresh)
 
-        fm = FolderMerger(reference_folder, compared_folders, refresh=refresh)  # type: ignore
+        fm = FolderMerger(reference_folder, compared_folders,
+                          refresh=refresh)  # type: ignore
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [str(folder) for folder in compared_folders]
+        session["compared_folders"] = [
+            str(folder) for folder in compared_folders]
 
         reference_report = fm.folders.main.report(mode="dict")
         report = fm.report(mode="dict")
@@ -98,7 +101,8 @@ def view_files():
         df = folder.data  # type: ignore
         reference_folder = None
     else:
-        df = folder.comparisons[fm.folders.main.name].get_files(files_selection)  # type: ignore
+        df = folder.comparisons[fm.folders.main.name].get_files(
+            files_selection)  # type: ignore
 
     return render_template(
         "files_view.html",
@@ -118,7 +122,8 @@ def get_tree(data: DataFrame) -> dict:
             if part not in current_level:
                 current_level[part] = {}
             current_level = current_level[part]
-        current_level[row["name"]] = {"fullpath": row["fullpath"], "hash": row["hash"], "uuid": row.name}
+        current_level[row["name"]] = {
+            "fullpath": row["fullpath"], "hash": row["hash"], "uuid": row.name}
     return tree
 
 
@@ -128,7 +133,7 @@ def render_tree(tree: dict):
         if isinstance(contents, dict):
             if "fullpath" in contents.keys():
                 # Handle the case where contents is dictionary representing a file
-                html += '<table class="file-content">'
+                html += '<table class="file-content hint-target">'
                 for key, value in contents.items():
                     html += (
                         "<tr>"
@@ -148,6 +153,14 @@ def render_tree(tree: dict):
         else:
             continue
     return html
+
+
+@app.route("/file_hint", methods=["POST"])
+def get_file_hint():
+    data = request.get_json()
+    hint_id = data.get('uuid', None)
+    hint_html_content = f"<div>Hint for {hint_id}</div>"
+    return hint_html_content
 
 
 def run(host="127.0.0.1", port=5000):

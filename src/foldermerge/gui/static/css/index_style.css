@@ -252,3 +252,16 @@ body {
 .home-button:hover {
     background-color: #d5d5d5;
 }
+
+.hint-content {
+    display: none;
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 5px;
+    border-radius: 3px;
+    pointer-events: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
