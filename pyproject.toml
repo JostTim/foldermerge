@@ -1,6 +1,6 @@
 [project]
 name = "foldermerge"
-version = "0.2.0"
+version = "0.3.0"
 description = "Default template for PDM package"
 authors = [
     { name = "JostTim", email = "44769559+JostTim@users.noreply.github.com" },
