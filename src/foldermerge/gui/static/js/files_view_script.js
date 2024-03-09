@@ -12,12 +12,16 @@ document.querySelectorAll('.folder').forEach(function (folder) {
 document.addEventListener('DOMContentLoaded', function () {
     var hintTargets = document.querySelectorAll('.hint-target');
     var hintBox = document.getElementById('hintBox');
+    var hoverTimer;
+    var mouse_in_hint = false;
+    var show_delay = 200; // milliseconds
 
     hintTargets.forEach(function (hintTarget) {
 
-        hintTarget.addEventListener('mouseenter', function (e) {
+        function ShowHintAfter1sec(e) {
+            console.log("timeout 1sec");
+
             var matchesValue = hintTarget.getAttribute('data-matches-uuids');
-            console.log(matchesValue)
             if (matchesValue === null || JSON.parse(matchesValue).length === 0) {
                 return;
             };
@@ -26,19 +30,34 @@ document.addEventListener('DOMContentLoaded', function () {
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.onreadystatechange = function () {
                 if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    moveHintBox(e)
                     hintBox.innerHTML = this.responseText;
-                    hintBox.style.display = 'block';
                 }
             };
             xhr.send(JSON.stringify({ 'uuids': matchesValue }));
+        };
+
+        hintTarget.addEventListener('mouseenter', function (e) {
+            clearTimeout(hoverTimer);
+            console.log("mouse in")
+
+            hoverTimer = setTimeout(function () { ShowHintAfter1sec(e); }, show_delay); // Wait for 1 second before showing the hint
         });
 
-        hintTarget.addEventListener('mouseleave', function () {
-            hintBox.style.display = 'none';
+        hintTarget.addEventListener('mouseleave', function (e) {
+            console.log("mouse exits")
+            clearTimeout(hoverTimer);
+            if (!hintBox.contains(e.relatedTarget)) {
+                hideHintBox();
+            }
         });
 
         hintTarget.addEventListener('mousemove', function (e) {
-            moveHintBox(e);
+            console.log("mouse move reset_timer")
+            clearTimeout(hoverTimer);
+            if (!mouse_in_hint) {
+                hoverTimer = setTimeout(function () { ShowHintAfter1sec(e); }, show_delay); // Reset timer if mouse moves
+            }
         });
 
     });
@@ -46,9 +65,26 @@ document.addEventListener('DOMContentLoaded', function () {
     function moveHintBox(e) {
         var mouseX = e.pageX;
         var mouseY = e.pageY;
+        hintBox.style.display = 'block';
         hintBox.style.top = (mouseY + 10) + 'px';
         hintBox.style.left = (mouseX + 10) + 'px';
     }
+
+    function hideHintBox() {
+        hintBox.style.display = 'none';
+    }
+
+    hintBox.addEventListener('mouseenter', function () {
+        mouse_in_hint = true;
+        console.log("mouse entered hint")
+        clearTimeout(hoverTimer);
+    });
+
+    hintBox.addEventListener('mouseleave', function () {
+        mouse_in_hint = false;
+        console.log("mouse left hint")
+        hideHintBox();
+    });
 
     var AddInfoButtons = document.querySelectorAll('.toggle-info-button');
     AddInfoButtons.forEach(function (InfoButton) {
@@ -78,3 +114,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 });
+
+function copyToClipboard(target) {
+    const path = target.innerText;
+    const separator = path.includes('/') ? '/' : '\\';
+    const dirname = path.substring(0, path.lastIndexOf(separator) + 1);
+    navigator.clipboard.writeText(dirname).then(function () {
+        console.log('Path copied to clipboard successfully!');
+        target.classList.add('flashing');
+        setTimeout(function () {
+            target.classList.remove('flashing');
+        }, 50);
+
+    }, function (err) {
+        console.error('Unable to copy to clipboard', err);
+    });
+}

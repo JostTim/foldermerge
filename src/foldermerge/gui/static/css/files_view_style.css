@@ -149,11 +149,19 @@ table {
     padding-left: 6px;
     padding-right: 6px;
     border-radius: 5px;
-    color: rgb(34, 34, 34);
+    color: #2b2b2b;
     background-color: #f3e7f1;
     border: solid;
     border-width: 1px;
     border-color: #d193e9;
+    transition: background-color 1s ease, color 1s ease, border-color 1s ease;
+}
+
+.category_value.flashing {
+    background-color: #d58bf3;
+    color: #ffffff;
+    border-color: #27055a;
+    transition: background-color 0s, color 0s, border-color 0s;
 }
 
 .ribbon {
@@ -188,8 +196,8 @@ table {
 .hint-content {
     display: none;
     position: absolute;
-    background-color: #ffffff00;
-    pointer-events: none;
+    background-color: #3838383d;
+    border-radius: 10px;
     z-index: 2;
     overflow-x: hidden;
 }

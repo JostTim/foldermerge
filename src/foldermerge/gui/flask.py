@@ -178,7 +178,7 @@ def render_file(file: dict, add_info_button=True) -> str:
         html += (
             '<tr class="additional-info">'
             f'<td><div class="category_key category_{key}">{key}</div></td>'
-            f'<td><div class="category_value category_{key}">{value}</div></td>'
+            f'<td><div class="category_value category_{key}" onclick="copyToClipboard(this)">{value}</div></td>'
             "</tr>"
         )
     html += "</tbody></table>"
