@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, session, make_response, flash, url_for, redirect
+from flask import Flask, render_template, request, session, flash, url_for, redirect, send_from_directory
+#from flask.sessions import SecureCookieSessionInterface
 from json import loads as json_loads
 from os import urandom
 from datetime import timedelta
 from pathlib import Path
-from foldermerge.core import FolderMerger, FolderChecker, FolderComparator
+from foldermerge.core import FolderMerger, HashLibrary
 from webbrowser import open_new as open_new_webbrowser
 from threading import Timer
 from pandas import DataFrame
@@ -11,8 +12,7 @@ from traceback import format_exc
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir /
-            "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -45,12 +45,10 @@ def view_report():
         print(compared_folders)
         print(refresh)
 
-        fm = FolderMerger(reference_folder, compared_folders,
-                          refresh=refresh)  # type: ignore
+        fm = FolderMerger(reference_folder, compared_folders, refresh=refresh)  # type: ignore
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [
-            str(folder) for folder in compared_folders]
+        session["compared_folders"] = [str(folder) for folder in compared_folders]
 
         reference_report = fm.folders.main.report(mode="dict")
         report = fm.report(mode="dict")
@@ -81,6 +79,15 @@ def view_report():
 
 @app.route("/view_files", methods=["POST"])
 def view_files():
+
+    selection_map = {
+        "identical": ["name", "content"],
+        "inexistant": [],
+        "moved": ["content"],
+        "changed": ["name"],
+        "all": [],
+    }
+
     reference_folder = session.get("reference_folder", None)
     compared_folders = session.get("compared_folders", [])
 
@@ -101,19 +108,21 @@ def view_files():
         df = folder.data  # type: ignore
         reference_folder = None
     else:
-        df = folder.comparisons[fm.folders.main.name].get_files(
-            files_selection)  # type: ignore
+        df = folder.comparisons[fm.folders.main.name].get_files(files_selection)  # type: ignore
 
     return render_template(
         "files_view.html",
-        tree_html=render_tree(get_tree(df)),
+        tree_html=render_tree(get_tree(df, selection_map[files_selection])),
         current_folder=folder.repo_path,  # type:ignore
         reference_folder=reference_folder,
         selection=files_selection,
     )
 
 
-def get_tree(data: DataFrame) -> dict:
+def get_tree(data: DataFrame, match_types=[]) -> dict:
+    if not isinstance(match_types, list):
+        match_types = [match_types]
+
     tree = {}
     for _, row in data.iterrows():
         parts = row["reldirpath"].split("\\")
@@ -122,29 +131,28 @@ def get_tree(data: DataFrame) -> dict:
             if part not in current_level:
                 current_level[part] = {}
             current_level = current_level[part]
+        matches = []
+        for match_type in match_types:
+            matches.extend(row.get(f"{match_type}_matches", []))  # type: ignore
+        matches = list(set(matches))
         current_level[row["name"]] = {
-            "fullpath": row["fullpath"], "hash": row["hash"], "uuid": row.name}
+            "fullpath": row["fullpath"],
+            "hash": row["hash"],
+            "uuid": row.name,
+            "matches": matches,
+        }
     return tree
 
 
-def render_tree(tree: dict):
+def render_tree(tree: dict) -> str:
     html = ""
     for folder, contents in tree.items():
         if isinstance(contents, dict):
             if "fullpath" in contents.keys():
-                # Handle the case where contents is dictionary representing a file
-                html += '<table class="file-content hint-target">'
-                for key, value in contents.items():
-                    html += (
-                        "<tr>"
-                        f'<td class="category_key">{key}</td>'
-                        "<td> : </td>"
-                        f'<td class="category_value">{value}</td>'
-                        "</tr>"
-                    )
-                html += "</table>"
+                # contents is a file
+                html += render_file(contents)
             else:
-                # contents is a dictionary (subfolder)
+                # contents is a subfolder
                 html += f'<li class="folder">{folder}</li>'
                 html += '<ul class="folder-content">'
                 # Recursively render subdirectories
@@ -155,17 +163,54 @@ def render_tree(tree: dict):
     return html
 
 
+def render_file(file: dict, add_info_button=True) -> str:
+    html = '<table class="file-content hint-target"'
+    if len(file.get("matches", [])):
+        html += f' data-matches-uuids="{file['matches']}">'
+    else:
+        html += ">"
+    html += "<tbody>"
+    for row_num, (key, value) in enumerate(file.items()):
+        if row_num == 1 and add_info_button:
+            html += '<tr><td colspan="2"><div class="toggle-info-button">▶</div></td></tr>'
+        if key == "matches":
+            value = len(value)
+        html += (
+            '<tr class="additional-info">'
+            f'<td><div class="category_key category_{key}">{key}</div></td>'
+            f'<td><div class="category_value category_{key}">{value}</div></td>'
+            "</tr>"
+        )
+    html += "</tbody></table>"
+    return html
+
+
 @app.route("/file_hint", methods=["POST"])
-def get_file_hint():
+def file_hint():
     data = request.get_json()
-    hint_id = data.get('uuid', None)
-    hint_html_content = f"<div>Hint for {hint_id}</div>"
-    return hint_html_content
+    uuids = json_loads(data.get("uuids", "[]"))
+    hash_library = HashLibrary(cached=True)
+    html_content = ""
+    for uuid in uuids:
+        file = hash_library.data.loc[uuid].to_dict()
+        html_content += render_file(file, add_info_button=False)
+    return html_content
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(str(Path(app.root_path) / 'static'), 'favicon.svg', mimetype='image/svg+xml')
 
 
 def run(host="127.0.0.1", port=5000):
     def open_browser():
         open_new_webbrowser(f"http://{host}:{port}/")
 
+    HashLibrary().set_cached_data()
+
+    # open a simple thread that will open a browser window after 1s delay.
+    # This will trigger while the http backend will have already started as "app.run" is a blocking statement.
     Timer(1, open_browser).start()
+
+    # instanciate an HashLibrary at least once to be able to acesss it via cache afterwards
     app.run(host=host, port=port, debug=False)

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="20%" y2="20%">
+      <stop offset="0%" style="stop-color:#0000FF;" />
+      <stop offset="100%" style="stop-color:#800080;" />
+    </linearGradient>
+
+    <linearGradient id="gradient2" x1="20%" y1="20%" x2="40%" y2="40%">
+      <stop offset="0%" style="stop-color:#0000FF;" />
+      <stop offset="100%" style="stop-color:#800080;" />
+    </linearGradient>
+
+    <linearGradient id="gradient3" x1="40%" y1="40%" x2="60%" y2="60%">
+      <stop offset="0%" style="stop-color:#0000FF;" />
+      <stop offset="100%" style="stop-color:#800080;" />
+    </linearGradient>
+
+    <linearGradient id="gradient4" x1="60%" y1="60%" x2="80%" y2="80%">
+      <stop offset="0%" style="stop-color:#0000FF;" />
+      <stop offset="100%" style="stop-color:#800080;" />
+    </linearGradient>
+
+    <linearGradient id="gradient5" x1="80%" y1="80%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0000FF;" />
+      <stop offset="100%" style="stop-color:#800080;" />
+    </linearGradient>
+  </defs>
+<g fill="url(#gradient1)">
+    <path d="M16,20 L24,20 L24,28 L16,28 Z"/>
+</g>
+<g fill="url(#gradient1)">
+    <path d="M28,20 L36,20 L36,28 L28,28 Z"/>
+</g>
+<g fill="url(#gradient2)">
+    <path d="M40,20 L48,20 L48,28 L40,28 Z"/>
+</g>
+<g fill="url(#gradient2)">
+    <path d="M16,32 L24,32 L24,40 L16,40 Z"/>
+</g>
+<g fill="url(#gradient3)">
+    <path d="M28,32 L36,32 L36,40 L28,40 Z"/>
+</g>
+<g fill="url(#gradient4)">
+    <path d="M40,32 L48,32 L48,40 L40,40 Z"/>
+</g>
+<g fill="url(#gradient4)">
+    <path d="M16,44 L24,44 L24,52 L16,52 Z"/>
+</g>
+<g fill="url(#gradient5)">
+    <path d="M28,44 L36,44 L36,52 L28,52 Z"/>
+</g>
+<g fill="url(#gradient5)">
+    <path d="M40,44 L48,44 L48,52 L40,52 Z"/>
+</g>
+<g fill="url(#gradient3)">
+    <text x="32" y="16" font-family="Arial" font-size="20" text-anchor="middle">FM</text>
+</g>
+</svg>
