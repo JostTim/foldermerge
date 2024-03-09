@@ -196,7 +196,7 @@ table {
 .hint-content {
     display: none;
     position: absolute;
-    background-color: #3838383d;
+    background-color: #ffffff00;
     border-radius: 10px;
     z-index: 2;
     overflow-x: hidden;

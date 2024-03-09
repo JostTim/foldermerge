@@ -66,8 +66,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var mouseX = e.pageX;
         var mouseY = e.pageY;
         hintBox.style.display = 'block';
-        hintBox.style.top = (mouseY + 10) + 'px';
-        hintBox.style.left = (mouseX + 10) + 'px';
+        hintBox.style.top = (mouseY + 5) + 'px';
+        hintBox.style.left = (mouseX + 5) + 'px';
     }
 
     function hideHintBox() {
