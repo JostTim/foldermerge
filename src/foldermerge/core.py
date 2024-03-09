@@ -598,26 +598,34 @@ class Folders(dict[str, FolderChecker]):
     It is a custom dictionnary that keeps folders organization and relationship between each other.
     """
 
+    main_folder: FolderChecker = None  # type: ignore
+    main_folder_name: str = None  # type: ignore
+
     def __init__(self, dico={}):
         super().__init__(dico)
 
     def __getitem__(self, index: int | str | slice) -> FolderChecker | Dict[str, FolderChecker]:
         if isinstance(index, int):
-            return super().__getitem__(list(self.keys())[index])
+            if index == 0:
+                return self.main_folder
+            return super().__getitem__(list(self.keys())[index - 1])
         elif isinstance(index, slice):
             dico = {}
             for ix in range(index.start or 0, index.stop or len(self), index.step or 1):
-                value = self[ix]
+                if ix == 0 or ix == self.main_folder_name:
+                    value = self.main_folder
+                else:
+                    value = self[ix]
                 if isinstance(value, FolderChecker):
                     dico[value.name] = value
             return dico
         else:
             return super().__getitem__(index)
 
-    def __setitem__(self, index: int | str, value: FolderChecker):
-        if isinstance(index, int):
-            index = value.name
-        super().__setitem__(index, value)
+    # def __setitem__(self, index: int | str, value: FolderChecker):
+    #     if isinstance(index, int):
+    #         index = value.name
+    #     super().__setitem__(index, value)
 
     def child(self, number: int) -> FolderChecker:
         out = self[number + 1]
@@ -637,19 +645,24 @@ class Folders(dict[str, FolderChecker]):
         Returns:
             FolderChecker
         """
+        if reference == self.main_folder_name:
+            return self.main_folder
         out = self[reference]
         if not isinstance(out, FolderChecker):
             raise ValueError
         return out
 
     def add(self, folder: FolderChecker):
+        if len(self) == 0:
+            setattr(self, "main_folder", folder)
+            setattr(self, "main_folder_name", folder.name)
+            self.main_folder.is_reference = True
+            return
         self[folder.name] = folder
-        if len(self) == 1:
-            self[folder.name].is_reference = True
 
     @property
     def main(self) -> FolderChecker:
-        out = self[0]
+        out = self.main_folder
         if not isinstance(out, FolderChecker):
             raise ValueError
         return out
@@ -660,6 +673,9 @@ class Folders(dict[str, FolderChecker]):
         if not isinstance(out, dict):
             raise ValueError
         return out
+
+    def __len__(self):
+        return super().__len__() + (1 if self.main_folder is not None else 0)
 
 
 class FolderMerger:
@@ -673,6 +689,8 @@ class FolderMerger:
         self.folders.add(FolderChecker(destination_repo))
         for repo_path in sources_repo:
             self.folders.add(FolderChecker(repo_path))
+
+        print(f"After folderchecks, added {len(self.folders)} total folders")
 
         for folder_checker in self.folders.values():
             with folder_checker:

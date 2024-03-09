@@ -85,7 +85,7 @@ def view_files():
         "inexistant": [],
         "moved": ["content"],
         "changed": ["name"],
-        "all": [],
+        "all": ["name", "content"],
     }
 
     reference_folder = session.get("reference_folder", None)
@@ -214,3 +214,6 @@ def run(host="127.0.0.1", port=5000):
 
     # instanciate an HashLibrary at least once to be able to acesss it via cache afterwards
     app.run(host=host, port=port, debug=False)
+
+
+#tqdm_capturing_regexp = r"\| (?P<current>\d+)\/(?P<total>\d+) \[(?P<t_elapsed>[\d:-]+)<(?P<t_remaining>[\d:-]+),"

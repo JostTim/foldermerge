@@ -12,28 +12,81 @@ body {
     margin: 20px;
 }
 
-.folder-structure {
-    margin: 5px;
+.folder-structure,
+.folder-content {
+    list-style: none;
+    padding: 0;
 }
 
-/* .file-content {
-    background: #fafafa;
-    margin-bottom: 8px;
+
+.folder-structure .folder:first-child {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.folder-structure .folder:last-child {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.folder-content .folder:first-child {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.folder-content .folder:last-child {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.folder {
+    background: #fff;
+    margin-bottom: 3px;
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
     padding: 10px 20px;
-} */
+}
+
+.folder:before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 10px;
+    transition: transform 0.3s ease;
+    transform: rotate(90deg);
+}
+
+.folder-content {
+    padding-left: 30px;
+    display: none;
+}
+
+.folder.open:before {
+    transform: rotate(0deg);
+}
+
+.folder.open+.folder-content {
+    display: block;
+}
+
+.folder-content {
+    margin: 2px;
+}
 
 .file-content {
     position: relative;
     border-radius: 5px;
-    padding: 10px 20px;
+    padding: 3px 5px;
     margin-bottom: 3px;
     transition: background-color 0.3s ease;
     background-color: #f7f7f7;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     z-index: 1;
+}
+
+table {
+    margin-bottom: 10px;
 }
 
 .file-content:hover {
@@ -98,43 +151,9 @@ body {
     border-radius: 5px;
     color: rgb(34, 34, 34);
     background-color: #f3e7f1;
-}
-
-.folder-structure,
-.folder-structure .folder-content {
-    list-style: none;
-    padding: 0;
-    margin: 0px;
-}
-
-.folder-structure .folder {
-    background: #fff;
-    margin-bottom: 8px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    padding: 10px 20px;
-}
-
-.folder-structure .folder:before {
-    content: '▶';
-    display: inline-block;
-    margin-right: 10px;
-    transition: transform 0.3s ease;
-    transform: rotate(90deg);
-}
-
-.folder-structure .folder-content {
-    padding-left: 30px;
-    display: none;
-}
-
-.folder-structure .folder.open:before {
-    transform: rotate(0deg);
-}
-
-.folder-structure .folder.open+.folder-content {
-    display: block;
+    border: solid;
+    border-width: 1px;
+    border-color: #d193e9;
 }
 
 .ribbon {
@@ -180,13 +199,21 @@ body {
     width: 100%;
     display: flex;
     text-align: center;
-    justify-content: center;
+    justify-content: left;
     align-items: center;
     font-size: 16px;
     transform: rotate(0deg);
     transition: transform 0.3s ease;
+    margin-top: -5px;
+    margin-bottom: -5px;
 }
 
 .toggle-info-button.open {
     transform: rotate(90deg);
+    justify-content: center;
+    color: #27055a;
+}
+
+.file-content:hover .toggle-info-button.open {
+    color: #ffffff;
 }
