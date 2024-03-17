@@ -406,9 +406,10 @@ class FolderChecker(StageMixin):
 
 class FolderComparator(StageMixin):
 
-    def __init__(self, current: FolderChecker, reference: FolderChecker):
+    def __init__(self, current: FolderChecker, reference: FolderChecker, current_root_in_reference: Path | None = None):
         self.current = current  # main folder
         self.reference = reference  # child folder
+        self.current_root_in_reference = current_root_in_reference
 
         self.name = self.current.name + "_vs_" + self.reference.name
 
@@ -521,26 +522,6 @@ class FolderComparator(StageMixin):
             return self.data
         else:
             raise ValueError(f"Cannot access the selection {selection}")
-
-    # def dates_results(self, result: pd.DataFrame) -> pd.DataFrame:
-    #     def is_most_recent(row, reference):
-    #         ref_ix = row.name_matches[0]
-    #         ref_row = reference.loc[ref_ix]
-
-    #         return (row.ctime > ref_row.ctime, row.mtime > ref_row.mtime, row.time > ref_row.time)
-
-    #     def most_recent_no_ambiguity(cell):
-    #         # returns True if all the metric are more recent in the child vs main. Otherwise, False
-    #         return all(cell)
-
-    #     def most_old_no_ambiguity(cell):
-    #         # returns True if any of the metric is more recent in the child vs main. Otherwise False
-    #         return not any(cell)
-
-    #     result = result.copy()
-    #     result["most_recent"] = result.apply(is_most_recent, reference=self.reference.data, axis=1)
-
-    #     return result
 
     def report(self, mode: Literal["text", "dict"] = "text") -> str | dict:
 

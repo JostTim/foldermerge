@@ -24,12 +24,18 @@ def console():
         action="store_true",
         help="Launches the graphical interface mode of foldermerge, in a browser tab",
     )
+    parser.add_argument("--port", help="Port in case of GUI run", default="5000")
+    parser.add_argument("--host", help="Host IP in case of GUI run", default=None)
 
     args = parser.parse_args()
     if args.gui:
         from .gui.flask import run as run_gui
 
-        run_gui()
+        if args.host is None:
+            host = "127.0.0.1"
+        else:
+            host = args.host
+        run_gui(host, args.port)
         return
 
     if args.reference_folder is None:
@@ -37,6 +43,12 @@ def console():
     logger.info(f"Selected reference folder is {args.reference_folder}")
     fm = FolderMerger(args.reference_folder, args.compared_folders)
     logger.info(fm.report())
+
+
+def create_app():
+    from .gui.flask import app
+
+    return app
 
 
 if __name__ == "__main__":

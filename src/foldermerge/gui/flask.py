@@ -38,7 +38,7 @@ def view_report():
     try:
         reference_folder = Path(request.form["reference_folder"])
         compared_folders = request.form.get("compared_folders", "")
-        compared_folders = compared_folders.split("*")
+        compared_folders = [folder for folder in compared_folders.split("*") if folder != "" and folder is not None]
         refresh = json_loads(request.form.get("refresh", "false"))
 
         print(reference_folder)

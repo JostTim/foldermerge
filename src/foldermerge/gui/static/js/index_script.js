@@ -1,26 +1,26 @@
 
-function dropHandler(ev) {
-    ev.preventDefault();
+// function dropHandler(ev) {
+//     ev.preventDefault();
 
-    if (ev.dataTransfer.items && ev.dataTransfer.items[0].webkitGetAsEntry().isDirectory) {
-        var folder = ev.dataTransfer.items[0].getAsFile();
-        $('#reference_folder').val(folder.name);
-    }
-}
+//     if (ev.dataTransfer.items && ev.dataTransfer.items[0].webkitGetAsEntry().isDirectory) {
+//         var folder = ev.dataTransfer.items[0].getAsFile();
+//         $('#reference_folder').val(folder.name);
+//     }
+// }
 
-function dragOverHandler(ev) {
-    ev.preventDefault();
-}
+// function dragOverHandler(ev) {
+//     ev.preventDefault();
+// }
 
-function folderChangeHandler(ev) {
-    var files = ev.target.files;
-    if (files.length) {
-        // Assuming single folder selection, take the first file's path
-        // Remove the file name (last part of the path) to get the folder path
-        var folderPath = files[0].webkitRelativePath.split('/').slice(0, -1).join('/');
-        $('#reference_folder').val(folderPath);
-    }
-}
+// function folderChangeHandler(ev) {
+//     var files = ev.target.files;
+//     if (files.length) {
+//         // Assuming single folder selection, take the first file's path
+//         // Remove the file name (last part of the path) to get the folder path
+//         var folderPath = files[0].webkitRelativePath.split('/').slice(0, -1).join('/');
+//         $('#reference_folder').val(folderPath);
+//     }
+// }
 
 function removeInputWithAnimation(inputElement) {
     inputElement.style.animation = 'slideUp 0.3s ease-out forwards'; // Apply the slide-up animation
@@ -66,8 +66,6 @@ function validatePathInput(event) {
         event.preventDefault();
     }
 }
-
-
 
 function concatenateComparedFolders() {
     var comparedFolders = Array.from(document.getElementsByClassName('compared_folder'));
