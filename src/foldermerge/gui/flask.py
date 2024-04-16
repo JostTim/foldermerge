@@ -37,13 +37,24 @@ def view_report():
 
     try:
         reference_folder = Path(request.form["reference_folder"])
-        compared_folders = request.form.get("compared_folders", "")
-        compared_folders = [folder for folder in compared_folders.split("*") if folder != "" and folder is not None]
+        _compared_folders = request.form.get("compared_folders", "")
+        _compared_roots = request.form.get("compared_roots", "")
+
+        compared_folders = []
+        compared_roots = []
+        for comp, root in zip(_compared_folders.split("*"), _compared_roots.split("*")):
+            if comp == "" or comp is None :
+                continue
+            compared_folders.append(comp)
+            if root == "" :
+                root = comp
+            compared_roots.append(root)
         refresh = json_loads(request.form.get("refresh", "false"))
 
-        print(reference_folder)
-        print(compared_folders)
-        print(refresh)
+        print("reference_folder: ", reference_folder)
+        print("compared_folders: ", compared_folders)
+        print("compared_roots: ", compared_roots)
+        print("refresh: ", refresh)
 
         fm = FolderMerger(reference_folder, compared_folders, refresh=refresh)  # type: ignore
         session.permanent = True
@@ -199,7 +210,7 @@ def file_hint():
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory(str(Path(app.root_path) / 'static'), 'favicon.svg', mimetype='image/svg+xml')
+    return send_from_directory(str(base_dir / 'static'), 'favicon.svg', mimetype='image/svg+xml')
 
 
 def run(host="127.0.0.1", port=5000):
@@ -214,6 +225,5 @@ def run(host="127.0.0.1", port=5000):
 
     # instanciate an HashLibrary at least once to be able to acesss it via cache afterwards
     app.run(host=host, port=port, debug=False)
-
 
 #tqdm_capturing_regexp = r"\| (?P<current>\d+)\/(?P<total>\d+) \[(?P<t_elapsed>[\d:-]+)<(?P<t_remaining>[\d:-]+),"

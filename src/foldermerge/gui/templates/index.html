@@ -30,10 +30,9 @@
                         {% endif %}>
             <div id="blobs@reference_folder" class="blobs-container"></div>
 
-
-
             <!-- Hidden field to store concatenated paths -->
             <input type="hidden" name="compared_folders" id="compared_folders" />
+            <input type="hidden" name="compared_roots" id="compared_roots" />
 
             <!-- Multiple inputs for compared folders -->
             <div id="compared_folders_list">
@@ -53,6 +52,11 @@
                                     name="compared_folder_{{ loop.index0 }}"
                                     id="compared_folder_{{ loop.index0 }}"
                                     value="{{ folder }}">
+                            <input  type="hidden" 
+                                    class="compared_folder_rel_root_val"
+                                    name="rel_root@compared_folder_{{ loop.index0 }}"
+                                    id="rel_root@compared_folder_{{ loop.index0 }}"
+                                    value="">
                             <div id="blobs@compared_folder_{{ loop.index0 }}" class="blobs-container compared_blobs"></div>
                         </div>
 
@@ -68,6 +72,11 @@
                                 name="compared_folder_{{ num_folders + 1 }}"
                                 id="compared_folder_{{ num_folders + 1 }}"
                                 value="">
+                        <input  type="hidden" 
+                                class="compared_folder_rel_root_val"
+                                name="rel_root@compared_folder_{{ num_folders + 1 }}"
+                                id="rel_root@compared_folder_{{ num_folders + 1 }}"
+                                value="">
                         <div id="blobs@compared_folder_{{ num_folders + 1 }}" class="blobs-container compared_blobs"></div>
                     </div>
 
@@ -81,6 +90,11 @@
                             class="compared_folder_hidden_val"
                             name="compared_folder_0"
                             id="compared_folder_0"
+                            value="">
+                    <input  type="hidden" 
+                            class="compared_folder_rel_root_val"
+                            name="rel_root@compared_folder_0"
+                            id="rel_root@compared_folder_0"
                             value="">
                     <div id="blobs@compared_folder_0" class="blobs-container compared_blobs"></div>
                 </div>

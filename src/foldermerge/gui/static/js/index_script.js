@@ -46,6 +46,12 @@ function create_compared_folder_field(folder_int_id) {
     hiddenInput.name = 'compared_folder_' + folder_int_id;
     hiddenInput.id = 'compared_folder_' + folder_int_id;
 
+    var hiddenRootInput = document.createElement('input');
+    hiddenRootInput.type = 'hidden';
+    hiddenRootInput.className = 'compared_folder_rel_root_val';
+    hiddenRootInput.name = 'rel_root@compared_folder_' + folder_int_id;
+    hiddenRootInput.id = 'rel_root@compared_folder_' + folder_int_id;
+
     var blobsContainer = document.createElement('div');
     blobsContainer.id = 'blobs@compared_folder_' + folder_int_id;
     blobsContainer.className = 'blobs-container';
@@ -55,6 +61,7 @@ function create_compared_folder_field(folder_int_id) {
 
     container.appendChild(textarea);
     container.appendChild(hiddenInput);
+    container.appendChild(hiddenRootInput);
     container.appendChild(blobsContainer);
 
     compared_folders_list.appendChild(container);
@@ -91,19 +98,36 @@ function validatePathInput(event) {
 }
 
 function concatenateComparedFolders() {
-    var comparedFolders = Array.from(document.getElementsByClassName('compared_folder_hidden_val'));
+
+    var comparedFolders = Array.from(document.getElementsByClassName('margin_container'));
+
+
+    // var comparedFolders = Array.from(document.getElementsByClassName('compared_folder_hidden_val'));
     // Sort inputs by the number in their name attribute
     comparedFolders.sort((a, b) => {
-        const numA = parseInt(a.name.split('_')[2], 10);
-        const numB = parseInt(b.name.split('_')[2], 10);
+        const numA = parseInt(a.id.split('_')[2], 10);
+        const numB = parseInt(b.id.split('_')[2], 10);
         return numA - numB;
     });
     // Join non-empty values with '*' separator
-    var concatenatedPaths = comparedFolders
-        .map(input => input.value.trim())
-        .filter(value => value !== '')
-        .join('*');
-    document.getElementById('compared_folders').value = concatenatedPaths;
+
+    function get_elements(folder_container) {
+        var compared_folder = folder_container.getElementsByClassName('compared_folder_hidden_val')[0].value.trim()
+        var root_folder = folder_container.getElementsByClassName('compared_folder_rel_root_val')[0].value.trim()
+
+        if (compared_folder !== '') {
+            results_comparedFolders.push(compared_folder);
+            results_rootFolders.push(root_folder);
+        }
+    }
+
+    var results_comparedFolders = Array()
+    var results_rootFolders = Array()
+
+    comparedFolders.forEach(get_elements);
+
+    document.getElementById('compared_folders').value = results_comparedFolders.join('*');
+    document.getElementById('compared_roots').value = results_rootFolders.join('*');
 }
 
 document.querySelector('form').addEventListener('submit', function (event) {
@@ -187,6 +211,13 @@ function on_input_blur() {
     // Update the hidden field with the raw path
     hiddenInput.value = pathValue;
 
+    var hiddenroot = document.getElementById('rel_root@' + input_id);
+
+    if (hiddenroot != null) {
+        hiddenroot.value = "";
+    }
+
+
     // Split the path into segments
     var pathSegments = pathValue.split(/[\\/]+/).filter(Boolean);
 
@@ -224,6 +255,7 @@ function on_input_blur() {
         if (container != null) {
             container.classList.add("no_animation_input");
         }
+
         input_container.style.display = 'none';
         blobsContainer.style.display = 'block';
     }
@@ -240,15 +272,23 @@ function on_input_focus() {
 function on_blob_click(event) {
     var blob = this;
     console.log(blob.joinedPath);
-    var blob_container = document.getElementById('blobs@' + blob.input_id);
-    var blobs = blob_container.querySelectorAll('.blob');
-    blobs.forEach(function (b) {
-        b.classList.remove('selected');
-    });
-    blobs.forEach(function (b) {
-        if (b.position <= blob.position) {
-            b.classList.add('selected');
-        }
-    });
+
+    var hiddenroot = document.getElementById('rel_root@' + blob.input_id);
+
+    if (hiddenroot != null) {
+
+        hiddenroot.value = blob.joinedPath;
+
+        var blob_container = document.getElementById('blobs@' + blob.input_id);
+        var blobs = blob_container.querySelectorAll('.blob');
+        blobs.forEach(function (b) {
+            b.classList.remove('selected');
+        });
+        blobs.forEach(function (b) {
+            if (b.position <= blob.position) {
+                b.classList.add('selected');
+            }
+        });
+    }
     event.stopPropagation();
 }
