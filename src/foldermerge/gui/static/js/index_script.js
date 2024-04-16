@@ -1,49 +1,72 @@
-
-// function dropHandler(ev) {
-//     ev.preventDefault();
-
-//     if (ev.dataTransfer.items && ev.dataTransfer.items[0].webkitGetAsEntry().isDirectory) {
-//         var folder = ev.dataTransfer.items[0].getAsFile();
-//         $('#reference_folder').val(folder.name);
-//     }
-// }
-
-// function dragOverHandler(ev) {
-//     ev.preventDefault();
-// }
-
-// function folderChangeHandler(ev) {
-//     var files = ev.target.files;
-//     if (files.length) {
-//         // Assuming single folder selection, take the first file's path
-//         // Remove the file name (last part of the path) to get the folder path
-//         var folderPath = files[0].webkitRelativePath.split('/').slice(0, -1).join('/');
-//         $('#reference_folder').val(folderPath);
-//     }
-// }
-
 function removeInputWithAnimation(inputElement) {
-    inputElement.style.animation = 'slideUp 0.3s ease-out forwards'; // Apply the slide-up animation
-    inputElement.addEventListener('animationend', function () {
-        inputElement.remove(); // Remove the element after the animation ends
+    var folder_id = parse_compared_folder_number(inputElement);
+    var container = document.getElementById('container@compared_folder_' + folder_id);
+    console.log(folder_id);
+    container.classList.add("delete_ongoing"); // Apply the slide-up animation
+    container.classList.remove("first_compared_folder");
+    container.classList.remove("no_animation_input");
+    container.addEventListener('animationend', function () {
+        container.remove(); // Remove the element after the animation ends
+        // document.getElementById('compared_folder_' + folder_id).remove();
+        // document.getElementById('blobs@compared_folder_' + folder_id).remove();
+        // document.getElementById('container@compared_folder_' + folder_id).remove();
     });
 }
+
+function parse_compared_folder_number(folder) {
+    var folder_id = folder.id
+    if (folder.id.includes("@")) {
+        folder_id = folder_id.split("@")[1]
+    }
+    return parseInt(folder_id.split('_').pop(), 10);
+}
+
+function create_compared_folder_field(folder_int_id) {
+
+    var compared_folders_list = document.getElementById('compared_folders_list');
+
+    var container = document.createElement('div');
+    container.className = "margin_container";
+    container.id = "container@compared_folder_" + folder_int_id;
+
+    var textarea = document.createElement('textarea');
+    textarea.id = 'input@compared_folder_' + folder_int_id;
+    textarea.className = 'editable-path compared_folder';
+    textarea.setAttribute('contenteditable', 'true');
+    textarea.setAttribute('placeholder', 'Enter a compared folder path here');
+    textarea.setAttribute('spellcheck', 'false');
+    // textarea.setAttribute('oninput', 'handleComparedFolderInput(event)');
+    // textarea.setAttribute('onkeypress', 'validatePathInput(event)');
+    textarea.addEventListener('input', handleComparedFolderInput);
+    textarea.addEventListener('keypress', validatePathInput);
+
+    var hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.className = 'compared_folder_hidden_val';
+    hiddenInput.name = 'compared_folder_' + folder_int_id;
+    hiddenInput.id = 'compared_folder_' + folder_int_id;
+
+    var blobsContainer = document.createElement('div');
+    blobsContainer.id = 'blobs@compared_folder_' + folder_int_id;
+    blobsContainer.className = 'blobs-container';
+
+    textarea.addEventListener('blur', on_input_blur);
+    blobsContainer.addEventListener('click', on_input_focus);
+
+    container.appendChild(textarea);
+    container.appendChild(hiddenInput);
+    container.appendChild(blobsContainer);
+
+    compared_folders_list.appendChild(container);
+};
 
 function handleComparedFolderInput(event) {
     const inputList = document.querySelectorAll('.compared_folder');
     const lastInput = inputList[inputList.length - 1];
 
     // Check if we need to add a new input field
-    if (event.target === lastInput && lastInput.value !== '') {
-        const newIndex = parseInt(lastInput.name.split('_').pop(), 10) + 1;
-        const newInput = document.createElement('input');
-        newInput.type = 'text';
-        newInput.name = 'compared_folder_' + newIndex;
-        newInput.className = 'input-field compared_folder';
-        newInput.placeholder = "Enter a compared folder path here";
-        newInput.setAttribute('oninput', 'handleComparedFolderInput(event)');
-        newInput.setAttribute('onkeypress', 'validatePathInput(event)');
-        document.getElementById('compared_folders_list').appendChild(newInput);
+    if (event.target === lastInput && lastInput.value.trim() !== '') {
+        var newInput = create_compared_folder_field(parse_compared_folder_number(lastInput) + 1);
     }
 
     // Check if we need to remove any input fields
@@ -58,7 +81,7 @@ function handleComparedFolderInput(event) {
 function validatePathInput(event) {
     // Define a regex pattern for allowed characters in paths
     // This example allows letters, numbers, underscores, hyphens, spaces, and slashes
-    var regex = /^[^\*:?"<>|]*$/;
+    var regex = /^[^\*?"<>|]*$/;
 
     // Check if the current character is allowed
     if (!regex.test(event.key) && event.key !== 'Backspace' && event.key !== 'Tab') {
@@ -68,7 +91,7 @@ function validatePathInput(event) {
 }
 
 function concatenateComparedFolders() {
-    var comparedFolders = Array.from(document.getElementsByClassName('compared_folder'));
+    var comparedFolders = Array.from(document.getElementsByClassName('compared_folder_hidden_val'));
     // Sort inputs by the number in their name attribute
     comparedFolders.sort((a, b) => {
         const numA = parseInt(a.name.split('_')[2], 10);
@@ -86,7 +109,6 @@ function concatenateComparedFolders() {
 document.querySelector('form').addEventListener('submit', function (event) {
     concatenateComparedFolders();
 });
-
 
 function createToast(message) {
     const toast = document.createElement('div');
@@ -118,6 +140,17 @@ document.addEventListener('DOMContentLoaded', function () {
         input.addEventListener('keypress', validatePathInput);
     });
 
+    var ref_folder = document.getElementById("input@reference_folder");
+    ref_folder.addEventListener('keypress', validatePathInput);
+
+    // render blobs if fields are pre-filled
+    comparedFolders.forEach(function (inputElement) {
+        var event = new Event('blur');
+        inputElement.dispatchEvent(event);
+    });
+    var event = new Event('blur');
+    ref_folder.dispatchEvent(event);
+
     if (flashMessages.length > 0) {
         flashMessages.forEach(function (flash) {
             if (flash[0] === 'error') {
@@ -127,3 +160,95 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+const editable_inputs = document.querySelectorAll('.editable-path');
+
+editable_inputs.forEach(AddInputListeners);
+
+function AddInputListeners(input_container) {
+
+    var input_id = input_container.id.split("@")[1];
+    var blobsContainer = document.getElementById('blobs@' + input_id);
+
+    input_container.addEventListener('blur', on_input_blur);
+    blobsContainer.addEventListener('click', on_input_focus);
+}
+
+function on_input_blur() {
+    var input_container = this;
+    var input_id = input_container.id.split("@")[1];
+
+    var blobsContainer = document.getElementById('blobs@' + input_id);
+    var hiddenInput = document.getElementById(input_id);
+
+    var pathValue = input_container.value.trim();
+    console.log(pathValue);
+
+    // Update the hidden field with the raw path
+    hiddenInput.value = pathValue;
+
+    // Split the path into segments
+    var pathSegments = pathValue.split(/[\\/]+/).filter(Boolean);
+
+    var slash_char = "";
+    if (pathValue.includes("/")) {
+        slash_char = "/"
+    }
+    else if (pathValue.includes("\\")) {
+        slash_char = "\\"
+    }
+
+    // Clear existing blobs
+    blobsContainer.innerHTML = '';
+
+    pathSegments.forEach(function (segment, index) {
+        var blob = document.createElement('span');
+        blob.className = 'blob';
+        blob.textContent = segment;
+        blob.joinedPath = pathSegments.slice(0, index + 1).join(slash_char);
+        blob.input_id = input_id
+        blob.position = index
+        blob.addEventListener('click', on_blob_click);
+        if (blobsContainer.innerHTML != '') {
+            var slash = document.createElement('span');
+            slash.textContent = slash_char;
+            slash.className = 'slash';
+            blobsContainer.appendChild(slash);
+        }
+        blobsContainer.appendChild(blob);
+    });
+
+    // Hide the editable path and show the blobs container
+    if (input_container.value.trim() != "") {
+        var container = document.getElementById('container@' + input_id);
+        if (container != null) {
+            container.classList.add("no_animation_input");
+        }
+        input_container.style.display = 'none';
+        blobsContainer.style.display = 'block';
+    }
+}
+
+function on_input_focus() {
+    var blobsContainer = this;
+    var input_container = document.getElementById('input@' + blobsContainer.id.split("@")[1]);
+    blobsContainer.style.display = 'none';
+    input_container.style.display = 'block';
+    input_container.focus();
+}
+
+function on_blob_click(event) {
+    var blob = this;
+    console.log(blob.joinedPath);
+    var blob_container = document.getElementById('blobs@' + blob.input_id);
+    var blobs = blob_container.querySelectorAll('.blob');
+    blobs.forEach(function (b) {
+        b.classList.remove('selected');
+    });
+    blobs.forEach(function (b) {
+        if (b.position <= blob.position) {
+            b.classList.add('selected');
+        }
+    });
+    event.stopPropagation();
+}

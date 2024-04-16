@@ -112,25 +112,30 @@ body {
     margin: 0;
 }
 
-.input-field {
+/* .input-field {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
     box-sizing: border-box;
-}
+} */
 
 #reference_folder {
     margin-bottom: 15px;
 }
 
-.input-field.compared_folder {
+.margin_container.first_compared_folder,
+.margin_container.no_animation_input {
+    animation: none;
+}
+
+.margin_container {
     margin-top: 5px;
     animation: slideDown 0.3s ease-out;
 }
 
-.input-field.compared_folder.first_compared_folder {
-    animation: none;
+.margin_container.delete_ongoing {
+    animation: slideUp 0.3s ease-out forwards !important;
 }
 
 @keyframes slideUp {
@@ -256,4 +261,73 @@ body {
     to {
         opacity: 0;
     }
+}
+
+
+.editable-path {
+    font-family: inherit;
+    resize: none;
+    width: 100%;
+    padding: 10px;
+    padding-left: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    height: 40px;
+    text-align: left;
+}
+
+
+.editable-path:focus {
+    outline: 2px solid #2947f1;
+}
+
+.blobs-container {
+    display: none;
+    width: 100%;
+    padding-top: 6px;
+    padding-left: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    height: 40px;
+    text-align: left;
+    overflow-y: scroll;
+}
+
+.blobs-container:hover {
+    cursor: text;
+}
+
+.blobs-container .blob {
+    display: inline-block;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px 2px;
+    background-color: #00000005;
+    background-image: none;
+    color: #2e2e2e;
+    margin-bottom: 5px;
+    border-radius: 10px;
+    outline: 1px solid #e3e1ff;
+    height: 20px;
+
+}
+
+.blobs-container .blob:hover {
+    cursor: pointer;
+    background-image: linear-gradient(140deg, #2e24e8, #24178a, #40187d, #b63de6);
+    outline-width: 0px;
+    color: white;
+}
+
+.blobs-container .blob.selected {
+    outline-width: 1px;
+    outline-color: #40187d;
+    background-color: #0a00611c;
+}
+
+.slash {
+    margin-right: 4px;
+    margin-left: 4px;
 }
