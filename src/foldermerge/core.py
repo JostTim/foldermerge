@@ -280,7 +280,8 @@ class FolderChecker(StageMixin):
     def __init__(self, repo_path: Path | str, search_root: Path | str | None = None):
         self.repo_path = Path(repo_path)
         self.search_root = Path(
-            repo_path) if search_root is not None else self.repo_path
+            search_root) if search_root is not None else self.repo_path
+        self.sanitize_search_root()
         sha1 = hashlib.sha1()
         sha1.update(str(self.repo_path).encode())
         self.name = sha1.hexdigest()[0:8]
@@ -327,17 +328,28 @@ class FolderChecker(StageMixin):
         sha.update(json.dumps(data).encode())
         return int(sha.hexdigest(), 16)
 
+    def sanitize_search_root(self):
+        try:
+            relative_search_path = self.search_root.relative_to(self.repo_path)
+            self.relative_search_path = relative_search_path if str(
+                relative_search_path) != '.' else None
+        except ValueError:
+            raise ValueError("Cannot set a folderchecker with a search path that is not in the repo_path. "
+                             f"repo_path={self.repo_path}, search_path={self.search_root}")
+
     def gather_files(self):
 
         self.set_error("gather_error")
 
-        print(f"Finding all files in the repo {self.repo_path}")
+        folder_str = (
+            f"in the folder {self.relative_search_path} of the" if self.relative_search_path is not None else "in the")
+        print(f"Finding all files {folder_str} repo {self.repo_path}")
         if not self.repo_path.is_dir():
             self.set_error("directory_access_error")
             raise OSError(
                 f"Path {self.repo_path} doesn't lead to an accessible directory")
 
-        for root, dirs, files in tqdm(self.repo_path.walk(), desc="Searching"):
+        for root, dirs, files in tqdm(self.search_root.walk(), desc="Searching"):
             if not files:
                 continue
 
@@ -352,14 +364,17 @@ class FolderChecker(StageMixin):
                 file_relpath = relative_dir / file
                 name = file.stem
                 ext = file.suffix
-                ctime = file_fullpath.stat().st_ctime
-                mtime = file_fullpath.stat().st_mtime
-                time = ctime if ctime > mtime else mtime
+                ctime = file_fullpath.stat().st_birthtime  # creation time
+                atime = file_fullpath.stat().st_atime  # last access time
+                mtime = file_fullpath.stat().st_mtime  # last modification time
+                # time = ctime if ctime > mtime else mtime
 
                 filesize = file_fullpath.stat().st_size
 
-                file_record = {"fullpath": str(
-                    file_fullpath), "ctime": ctime, "mtime": mtime, "time": time}
+                file_record = {"fullpath": str(file_fullpath),
+                               "ctime": ctime,
+                               "mtime": mtime,
+                               "atime": atime}
                 file_record["uuid"] = self.get_uuid(file_record)
                 file_record.update(
                     {
