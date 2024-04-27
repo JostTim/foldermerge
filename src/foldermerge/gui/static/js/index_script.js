@@ -127,7 +127,7 @@ function concatenateComparedFolders() {
     comparedFolders.forEach(get_elements);
 
     document.getElementById('compared_folders').value = results_comparedFolders.join('*');
-    document.getElementById('compared_roots').value = results_rootFolders.join('*');
+    document.getElementById('compared_rel_roots').value = results_rootFolders.join('*');
 }
 
 document.querySelector('form').addEventListener('submit', function (event) {

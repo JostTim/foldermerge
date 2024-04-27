@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, session, flash, url_for, redirect, send_from_directory
-#from flask.sessions import SecureCookieSessionInterface
+
+# from flask.sessions import SecureCookieSessionInterface
 from json import loads as json_loads
 from os import urandom
 from datetime import timedelta
@@ -38,28 +39,43 @@ def view_report():
     try:
         reference_folder = Path(request.form["reference_folder"])
         _compared_folders = request.form.get("compared_folders", "")
-        _compared_roots = request.form.get("compared_roots", "")
+        _compared_rel_roots = request.form.get("compared_rel_roots", "")
 
         compared_folders = []
-        compared_roots = []
-        for comp, root in zip(_compared_folders.split("*"), _compared_roots.split("*")):
-            if comp == "" or comp is None :
+        search_paths = []
+        for comp, root in zip(_compared_folders.split("*"), _compared_rel_roots.split("*")):
+            if comp == "" or comp is None:
                 continue
-            compared_folders.append(comp)
-            if root == "" :
+
+            if root == "":
                 root = comp
-            compared_roots.append(root)
+
+            if len(comp) >= len(root):
+                # if comp is longer than root, the search path is comp, not root. So we swap
+                compared_folders.append(root)
+                search_paths.append(comp)
+            else:
+                compared_folders.append(comp)
+                search_paths.append(root)
+
         refresh = json_loads(request.form.get("refresh", "false"))
 
         print("reference_folder: ", reference_folder)
         print("compared_folders: ", compared_folders)
-        print("compared_roots: ", compared_roots)
+        print("search_paths: ", search_paths)
         print("refresh: ", refresh)
 
-        fm = FolderMerger(reference_folder, compared_folders, refresh=refresh)  # type: ignore
+        fm = FolderMerger(
+            destination_repo=reference_folder,
+            sources_repo=compared_folders,
+            search_paths_repo=search_paths,
+            refresh=refresh,
+        )  # type: ignore
+
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
         session["compared_folders"] = [str(folder) for folder in compared_folders]
+        session["search_paths"] = [str(folder) for folder in search_paths]
 
         reference_report = fm.folders.main.report(mode="dict")
         report = fm.report(mode="dict")
@@ -101,6 +117,7 @@ def view_files():
 
     reference_folder = session.get("reference_folder", None)
     compared_folders = session.get("compared_folders", [])
+    search_paths = session.get("search_paths", [])
 
     folder_selection = request.form["folder_selection"]
     files_selection = request.form["files_selection"]
@@ -111,7 +128,9 @@ def view_files():
         flash("A reference folder wasn't selected. Please select one.", "error")
         return redirect(url_for("index"))
 
-    fm = FolderMerger(reference_folder, compared_folders, refresh=False)
+    fm = FolderMerger(
+        destination_repo=reference_folder, sources_repo=compared_folders, search_paths_repo=search_paths, refresh=False
+    )
 
     folder = fm.folders[folder_selection]
 
@@ -176,8 +195,9 @@ def render_tree(tree: dict) -> str:
 
 def render_file(file: dict, add_info_button=True) -> str:
     html = '<table class="file-content hint-target"'
-    if len(file.get("matches", [])):
-        html += f' data-matches-uuids="{file['matches']}">'
+    file_matches = file.get("matches", [])
+    if len(file_matches):
+        html += f' data-matches-uuids="{file_matches}">'
     else:
         html += ">"
     html += "<tbody>"
@@ -208,9 +228,9 @@ def file_hint():
     return html_content
 
 
-@app.route('/favicon.ico')
+@app.route("/favicon.ico")
 def favicon():
-    return send_from_directory(str(base_dir / 'static'), 'favicon.svg', mimetype='image/svg+xml')
+    return send_from_directory(str(base_dir / "static"), "favicon.svg", mimetype="image/svg+xml")
 
 
 def run(host="127.0.0.1", port=5000):
@@ -226,4 +246,5 @@ def run(host="127.0.0.1", port=5000):
     # instanciate an HashLibrary at least once to be able to acesss it via cache afterwards
     app.run(host=host, port=port, debug=False)
 
-#tqdm_capturing_regexp = r"\| (?P<current>\d+)\/(?P<total>\d+) \[(?P<t_elapsed>[\d:-]+)<(?P<t_remaining>[\d:-]+),"
+
+# tqdm_capturing_regexp = r"\| (?P<current>\d+)\/(?P<total>\d+) \[(?P<t_elapsed>[\d:-]+)<(?P<t_remaining>[\d:-]+),"

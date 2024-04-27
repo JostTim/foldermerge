@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="1.447" timestamp="2024-04-21T15:43:23.556530" hostname="XPS139370-1-DS"><testcase classname="" name="tests.test_package" time="0.000"><error message="collection failure">.venv\Lib\site-packages\_pytest\python.py:537: in importtestmodule
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.197" timestamp="2024-04-27T20:02:08.788402" hostname="Central-White"><testcase classname="" name="tests.test_package" time="0.000"><error message="collection failure">.venv\Lib\site-packages\_pytest\python.py:537: in importtestmodule
     mod = import_path(path, mode=importmode, root=config.rootpath)
 .venv\Lib\site-packages\_pytest\pathlib.py:567: in import_path
     importlib.import_module(module_name)
@@ -18,7 +18,7 @@ C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.1008.0_x6
     tree = ast.parse(source, filename=strfn)
 C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.1008.0_x64__qbz5n2kfra8p0\Lib\ast.py:52: in parse
     return compile(source, filename, mode, flags,
-E     File "c:\Users\Timothe\Documents\python_scripts\foldermerge\tests\test_package.py", line 31
+E     File "c:\Users\timot\Documents\Scripts\python\foldermerge\tests\test_package.py", line 31
 E       merger = 
 E                ^
 E   SyntaxError: invalid syntax</error></testcase></testsuite></testsuites>
