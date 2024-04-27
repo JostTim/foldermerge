@@ -209,6 +209,11 @@ class HashLibrary(StageMixin):
         else:
             self.load()
 
+    def clean_library(self):
+        # TODO : removes entries that corresponds to files that don't exist anymore
+        # Scan the files that are in the lib and ony keep the ones existing, then resave cache and disk data
+        pass
+
     def __enter__(self):
         self.set_error("hash_gathering_error")
         self.entries_buffer = []
@@ -450,6 +455,8 @@ class FolderComparator(StageMixin):
         self.save()
 
     def get_matches(self, cell, compared_data):
+        # TODO : should add a comparison system that still remains fast, but that can explude empty files from being
+        # matched with other files. This may also bias the report, so we should find a good compromise with this.
         matches = compared_data == cell
         matches = matches[matches]
         if len(matches):
