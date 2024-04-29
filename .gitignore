@@ -153,3 +153,4 @@ cython_debug/
 .pdm-python
 
 tests/results*
+pytest_results.xml

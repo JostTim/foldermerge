@@ -13,7 +13,8 @@ from traceback import format_exc
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir /
+            "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -74,7 +75,8 @@ def view_report():
 
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [str(folder) for folder in compared_folders]
+        session["compared_folders"] = [
+            str(folder) for folder in compared_folders]
         session["search_paths"] = [str(folder) for folder in search_paths]
 
         reference_report = fm.folders.main.report(mode="dict")
@@ -129,7 +131,10 @@ def view_files():
         return redirect(url_for("index"))
 
     fm = FolderMerger(
-        destination_repo=reference_folder, sources_repo=compared_folders, search_paths_repo=search_paths, refresh=False
+        destination_repo=reference_folder,
+        sources_repo=compared_folders,
+        search_paths_repo=search_paths,
+        refresh=False
     )
 
     folder = fm.folders[folder_selection]
@@ -138,7 +143,8 @@ def view_files():
         df = folder.data  # type: ignore
         reference_folder = None
     else:
-        df = folder.comparisons[fm.folders.main.name].get_files(files_selection)  # type: ignore
+        df = folder.comparisons[fm.folders.main.name].get_files(
+            files_selection)  # type: ignore
 
     return render_template(
         "files_view.html",
@@ -152,6 +158,7 @@ def view_files():
 def get_tree(data: DataFrame, match_types=[]) -> dict:
     if not isinstance(match_types, list):
         match_types = [match_types]
+    print(match_types)
 
     tree = {}
     for _, row in data.iterrows():
@@ -163,7 +170,8 @@ def get_tree(data: DataFrame, match_types=[]) -> dict:
             current_level = current_level[part]
         matches = []
         for match_type in match_types:
-            matches.extend(row.get(f"{match_type}_matches", []))  # type: ignore
+            # type: ignore
+            matches.extend(row.get(f"{match_type}_matches", []))
         matches = list(set(matches))
         current_level[row["name"]] = {
             "fullpath": row["fullpath"],

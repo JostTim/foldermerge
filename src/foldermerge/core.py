@@ -27,6 +27,16 @@ def clear_results():
 
 
 class StageMixin:
+    """This Mixin class is made to be subclassed to allow classes that revolve around a dataframe
+    that will be read/saved to disk often, and that must be written to disk at current stage
+    if the full code execution fails. For this, it is also a context manager.
+    The information relative to the last "write" of the core dataframe to disk, will be
+    avaiable in the json file related to the class instance.
+    The attributes that must be defined for this behaviour are :
+    - name (what will be used to load the dataframe from the RESULTS_PATH folder)
+        by default RESULTS_PATH is a folder named FILE_HASHES in our downloads folder.
+
+    """
 
     error: str = "undefined"
     name: str
@@ -61,7 +71,8 @@ class StageMixin:
         if self.save_path.is_file():
             self._data = pd.read_pickle(self.save_path)
             return
-        print(f"Could not load {self.save_path}. Making _data an empty DataFrame")
+        print(
+            f"Could not load {self.save_path}. Making _data an empty DataFrame")
         self._data = pd.DataFrame()
 
     def save(self):
@@ -125,7 +136,8 @@ class StatusFile:
                     filename = datetime.datetime.now().strftime("status_error_backup_%y%m%d.json")
                     with open(self.save_path.parent / filename, "w") as f_out:
                         f_out.write(f_in.read())
-                print(f"Could not decode the json results file. All contents have been backed up to {filename}")
+                print(
+                    f"Could not decode the json results file. All contents have been backed up to {filename}")
                 return {}
 
     def _map_setting(self, key):
@@ -135,7 +147,8 @@ class StatusFile:
                 value = value(self)
             return value
         except KeyError:
-            raise ValueError(f"{self.owner.__class__}-{key} is not specified in StatusFile settings")
+            raise ValueError(
+                f"{self.owner.__class__}-{key} is not specified in StatusFile settings")
 
     @property
     def group_key(self) -> str:
@@ -195,7 +208,8 @@ class HashLibrary(StageMixin):
 
     entries_buffer: list
 
-    cross_instance_cached_data: Dict[str, pd.DataFrame] = CROSS_INSTANCE_CACHED_HASH_DATA
+    cross_instance_cached_data: Dict[str,
+                                     pd.DataFrame] = CROSS_INSTANCE_CACHED_HASH_DATA
 
     def __init__(self, cached=False):
         self.entries_buffer = []
@@ -266,7 +280,8 @@ class HashLibrary(StageMixin):
                 data = pd.DataFrame(self.entries_buffer)
                 data.index.name = "uuid"
             else:
-                data = pd.concat([self.data, pd.DataFrame(self.entries_buffer)])
+                data = pd.concat(
+                    [self.data, pd.DataFrame(self.entries_buffer)])
                 data = data.drop_duplicates(keep="last")
             self._data = data
             self.entries_buffer = []
@@ -286,7 +301,8 @@ class FolderChecker(StageMixin):
 
     def __init__(self, repo_path: Path | str, search_root: Path | str | None = None):
         self.repo_path = Path(repo_path)
-        self.search_root = Path(search_root) if search_root is not None else self.repo_path
+        self.search_root = Path(
+            search_root) if search_root is not None else self.repo_path
         self.sanitize_search_root()
 
         sha1 = hashlib.sha1()
@@ -303,7 +319,8 @@ class FolderChecker(StageMixin):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(
+                traceback.format_exception(exc_type, exc_val, exc_tb)))
         else:
             self.set_error("complete_success")
 
@@ -313,7 +330,8 @@ class FolderChecker(StageMixin):
                 # do not save for now
                 return
             else:
-                self._data = pd.DataFrame(self.entries_buffer).set_index("uuid")
+                self._data = pd.DataFrame(
+                    self.entries_buffer).set_index("uuid")
                 self.entries_buffer = []
         else:
             if self.data.empty:
@@ -335,7 +353,8 @@ class FolderChecker(StageMixin):
 
     def sanitize_search_root(self):
         try:
-            self.relative_search_path = self.search_root.relative_to(self.repo_path)
+            self.relative_search_path = self.search_root.relative_to(
+                self.repo_path)
         except ValueError:
             raise ValueError(
                 "Cannot set a folderchecker with a search path that is not in the repo_path. "
@@ -351,7 +370,8 @@ class FolderChecker(StageMixin):
         print(f"Finding all files {folder_str} repo {self.repo_path}")
         if not self.repo_path.is_dir():
             self.set_error("directory_access_error")
-            raise OSError(f"Path {self.repo_path} doesn't lead to an accessible directory")
+            raise OSError(
+                f"Path {self.repo_path} doesn't lead to an accessible directory")
 
         for root, dirs, files in tqdm(self.search_root.walk(), desc="Searching"):
             if not files:
@@ -371,11 +391,10 @@ class FolderChecker(StageMixin):
                 ctime = file_fullpath.stat().st_birthtime  # creation time
                 mtime = file_fullpath.stat().st_mtime  # last modification time
                 atime = file_fullpath.stat().st_atime  # last access time
-                # time = ctime if ctime > mtime else mtime
-
                 filesize = file_fullpath.stat().st_size
 
-                file_record = {"fullpath": str(file_fullpath), "ctime": ctime, "mtime": mtime}
+                file_record = {"fullpath": str(
+                    file_fullpath), "ctime": ctime, "mtime": mtime}
                 # do not put access time (atime) in the part that calculated the uuid,
                 # otherwise it will be different each time the file is read (even if unchanged)
                 file_record["uuid"] = self.get_uuid(file_record)
@@ -413,7 +432,8 @@ class FolderChecker(StageMixin):
         self.set_error("hashes_error")
         print(f"Claculating hashes for {len(self.data)} files :")
         with hlib:
-            self._data["hash"] = self.data.progress_apply(hlib.retrieve_entry, axis=1)  # type: ignore
+            self._data["hash"] = self.data.progress_apply(
+                hlib.retrieve_entry, axis=1)  # type: ignore
 
     def add_comparison(self, ref_folder):
         comparison = FolderComparator(self, ref_folder)
@@ -445,7 +465,8 @@ class FolderComparator(StageMixin):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            print("Traceback: ", "".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+            print("Traceback: ", "".join(
+                traceback.format_exception(exc_type, exc_val, exc_tb)))
             return True  # do not propagate exception
         else:
             if self._data.empty:
@@ -467,7 +488,8 @@ class FolderComparator(StageMixin):
         self.set_error("comparison_error")
 
         if self.current.data is None or self.reference.data is None:
-            raise ValueError("Cannot compare with improperly instanciated FolderChecker")
+            raise ValueError(
+                "Cannot compare with improperly instanciated FolderChecker")
 
         # if self.get_error() != "comparison_success":
         print("Comparing names:")
@@ -481,7 +503,8 @@ class FolderComparator(StageMixin):
             self.get_matches, compared_data=self.reference.data.hash
         )
 
-        rows = list(zip(name_matches, content_matches, ["undefined"] * len(self.current.data)))
+        rows = list(zip(name_matches, content_matches, [
+                    "undefined"] * len(self.current.data)))
 
         self._data = pd.DataFrame(
             data=rows,
@@ -492,10 +515,12 @@ class FolderComparator(StageMixin):
     @property
     def data(self):
         if self.current.data is None or self._data.empty:
-            raise ValueError("Cannot load composite data from two FolderCheckers that are improperly instanciated")
+            raise ValueError(
+                "Cannot load composite data from two FolderCheckers that are improperly instanciated")
 
         return ComparisonResult.from_folder_comparator(
-            pd.concat([self.current.data, self._data], axis=1), "all_files", self
+            pd.concat([self.current.data, self._data],
+                      axis=1), "all_files", self
         )
 
     def run(self, refresh=True):
@@ -698,7 +723,8 @@ class FolderMerger:
             search_paths_repo = [search_paths_repo]
 
         if len(sources_repo) != len(search_paths_repo):
-            raise ValueError("sources_repo and relative_roots_repo don't have the same length. Check your arguments")
+            raise ValueError(
+                "sources_repo and relative_roots_repo don't have the same length. Check your arguments")
 
         self.folders = Folders()
         self.folders.add(FolderChecker(destination_repo))
@@ -724,7 +750,8 @@ class FolderMerger:
     def report(self, mode: Literal["text", "dict"] = "text") -> List[str | dict]:
         reports = []
         for folder in self.folders.childs.values():
-            reports.append(folder.comparisons[self.folders.main.name].report(mode))
+            reports.append(
+                folder.comparisons[self.folders.main.name].report(mode))
         return reports
 
     def serialize(self):
@@ -735,7 +762,8 @@ class FolderMerger:
 
 
 if __name__ == "__main__":
-    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [r"C:\Users\Timothe\NasgoyaveOC\Projets"])
+    data = FolderMerger(r"C:\Users\Timothe\NasgoyaveOC\Projets", [
+                        r"C:\Users\Timothe\NasgoyaveOC\Projets"])
     print(data)
     print(data.folders.main)
     print(len(data.folders.main.data))
