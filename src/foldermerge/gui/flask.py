@@ -13,8 +13,7 @@ from traceback import format_exc
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir /
-            "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -75,8 +74,7 @@ def view_report():
 
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [
-            str(folder) for folder in compared_folders]
+        session["compared_folders"] = [str(folder) for folder in compared_folders]
         session["search_paths"] = [str(folder) for folder in search_paths]
 
         reference_report = fm.folders.main.report(mode="dict")
@@ -131,10 +129,7 @@ def view_files():
         return redirect(url_for("index"))
 
     fm = FolderMerger(
-        destination_repo=reference_folder,
-        sources_repo=compared_folders,
-        search_paths_repo=search_paths,
-        refresh=False
+        destination_repo=reference_folder, sources_repo=compared_folders, search_paths_repo=search_paths, refresh=False
     )
 
     folder = fm.folders[folder_selection]
@@ -143,8 +138,7 @@ def view_files():
         df = folder.data  # type: ignore
         reference_folder = None
     else:
-        df = folder.comparisons[fm.folders.main.name].get_files(
-            files_selection)  # type: ignore
+        df = folder.comparisons[fm.folders.main.name].get_files(files_selection)  # type: ignore
 
     return render_template(
         "files_view.html",
@@ -175,6 +169,7 @@ def get_tree(data: DataFrame, match_types=[]) -> dict:
         matches = list(set(matches))
         current_level[row["name"]] = {
             "fullpath": row["fullpath"],
+            "filename": row["filename"],
             "hash": row["hash"],
             "uuid": row.name,
             "matches": matches,
@@ -202,25 +197,32 @@ def render_tree(tree: dict) -> str:
 
 
 def render_file(file: dict, add_info_button=True) -> str:
-    html = '<table class="file-content hint-target"'
+    html = '<div class = "file-container"><table class="file-content hint-target"'
     file_matches = file.get("matches", [])
+    file_uuid = file.get("uuid", None)
     if len(file_matches):
         html += f' data-matches-uuids="{file_matches}">'
     else:
         html += ">"
     html += "<tbody>"
     for row_num, (key, value) in enumerate(file.items()):
-        if row_num == 1 and add_info_button:
-            html += '<tr><td colspan="2"><div class="toggle-info-button">▶</div></td></tr>'
+        # if row_num == 1 and add_info_button:
+        #     html += '<tr><td colspan="2"><div class="toggle-info-button">▶</div></td></tr>'
         if key == "matches":
             value = len(value)
-        html += (
-            '<tr class="additional-info">'
-            f'<td><div class="category_key category_{key}">{key}</div></td>'
-            f'<td><div class="category_value category_{key}" onclick="copyToClipboard(this)">{value}</div></td>'
-            "</tr>"
-        )
+        html += '<tr class="additional-info">'
+        html += f'<td><div class="category_key category_{key}">{key}</div></td>'
+        html += f'<td><div class="category_value category_{key}" onclick="copyToClipboard(this)">{value}</div></td>'
+        if key == "fullpath":
+            html += '<td><span class="material-symbols-outlined">content_copy</span></td>'
+
+        html += "</tr>"
+
     html += "</tbody></table>"
+    if file_uuid is not None:
+        html += f'<div class="action-button" id="{file_uuid}_copier">Copy file to reference</div>'
+        html += f'<div class="action-button" id="{file_uuid}_deleter">Delete file</div>'
+    html += "</div>"
     return html
 
 

@@ -53,7 +53,7 @@ body {
     display: inline-block;
     margin-right: 10px;
     transition: transform 0.3s ease;
-    transform: rotate(90deg);
+    transform: rotate(0deg);
 }
 
 .folder-content {
@@ -62,7 +62,7 @@ body {
 }
 
 .folder.open:before {
-    transform: rotate(0deg);
+    transform: rotate(90deg);
 }
 
 .folder.open+.folder-content {
@@ -73,20 +73,31 @@ body {
     margin: 2px;
 }
 
+.file-container {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 3px;
+}
+
+table {
+    margin-bottom: 0px;
+}
+
+table tr:last-child {
+    margin-bottom: 2px;
+}
+
 .file-content {
     position: relative;
     border-radius: 5px;
     padding: 3px 5px;
-    margin-bottom: 3px;
+    margin-bottom: 0px;
     transition: background-color 0.3s ease;
+    color: #383838;
     background-color: #f7f7f7;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     z-index: 1;
-}
-
-table {
-    margin-bottom: 10px;
 }
 
 .file-content:hover {
@@ -205,23 +216,50 @@ table {
 .toggle-info-button {
     cursor: pointer;
     width: 100%;
-    display: flex;
-    text-align: center;
-    justify-content: left;
-    align-items: center;
     font-size: 16px;
-    transform: rotate(0deg);
+    transform: rotate(90deg);
     transition: transform 0.3s ease;
     margin-top: -5px;
     margin-bottom: -5px;
 }
 
 .toggle-info-button.open {
-    transform: rotate(90deg);
-    justify-content: center;
+    transform: rotate(0deg);
     color: #27055a;
 }
 
 .file-content:hover .toggle-info-button.open {
     color: #ffffff;
+}
+
+.action-button {
+    width: 190px;
+    max-height: 60px;
+    line-height: 60px;
+    border-radius: 10px;
+    text-align: center;
+    display: inline-block;
+    vertical-align: middle;
+    background-color: white;
+    color: #000000;
+    margin-left: 3px;
+    box-shadow: 0 100px 100px -100px #f7f7f7 inset, 0 0 5px rgba(0, 0, 0, 0.2);
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.action-button:hover {
+    cursor: pointer;
+    color: #ffffff;
+    background-color: #0d0086;
+    box-shadow: 0 75px 50px -50px #b63de6 inset, 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+
+.material-symbols-outlined {
+    color: inherit;
+    cursor: pointer;
+}
+
+.material-symbols-outlined:hover {
+    text-shadow: 0px 0px 3px rgba(118, 143, 255, 0.89);
 }
