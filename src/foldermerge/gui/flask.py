@@ -10,17 +10,21 @@ from webbrowser import open_new as open_new_webbrowser
 from threading import Timer
 from pandas import DataFrame
 from traceback import format_exc
+from logging import basicConfig, StreamHandler, getLogger
+
+LOGGING_LEVEL = "DEBUG"
 
 base_dir = Path(__file__).parent
 
 app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
-app.permanent_session_lifetime = timedelta(minutes=5)
+app.permanent_session_lifetime = timedelta(minutes=30)
 
 
 @app.route("/")
 def index():
+    logger = getLogger("gui.index")
     reference_folder = session.get("reference_folder", None)
     compared_folders = session.get("compared_folders", [])
     return render_template(
@@ -104,6 +108,32 @@ def view_report():
         return render_template("index.html")
 
 
+def get_session():
+    reference_folder = session.get("reference_folder", None)
+    compared_folders = session.get("compared_folders", [])
+    search_paths = session.get("search_paths", [])
+
+    try:
+        if reference_folder is None:
+            raise ValueError("reference_folder cannot be None")
+        fm = FolderMerger(
+            destination_repo=reference_folder,
+            sources_repo=compared_folders,
+            search_paths_repo=search_paths,
+            refresh=False,
+        )
+        return fm
+    except Exception as e:
+        return None
+
+
+def set_session(foldermerger: FolderMerger):
+    session.permanent = True
+    session["reference_folder"] = foldermerger.reference_folder_path
+    session["compared_folders"] = foldermerger.compared_folders_paths
+    session["search_paths"] = foldermerger.search_paths
+
+
 @app.route("/view_files", methods=["POST"])
 def view_files():
 
@@ -115,22 +145,16 @@ def view_files():
         "all": ["name", "content"],
     }
 
-    reference_folder = session.get("reference_folder", None)
-    compared_folders = session.get("compared_folders", [])
-    search_paths = session.get("search_paths", [])
+    fm = get_session()
+
+    if fm is None:
+        flash("A reference folder wasn't selected. Please select one.", "error")
+        return redirect(url_for("index"))
 
     folder_selection = request.form["folder_selection"]
     files_selection = request.form["files_selection"]
     print(folder_selection)
     print(files_selection)
-
-    if reference_folder is None:
-        flash("A reference folder wasn't selected. Please select one.", "error")
-        return redirect(url_for("index"))
-
-    fm = FolderMerger(
-        destination_repo=reference_folder, sources_repo=compared_folders, search_paths_repo=search_paths, refresh=False
-    )
 
     folder = fm.folders[folder_selection]
 
@@ -147,6 +171,35 @@ def view_files():
         reference_folder=reference_folder,
         selection=files_selection,
     )
+
+
+@app.route("/file_hint", methods=["POST"])
+def file_hint():
+    data = request.get_json()
+    uuids = json_loads(data.get("uuids", "[]"))
+    hash_library = HashLibrary(cached=True)
+    html_content = ""
+    for uuid in uuids:
+        file = hash_library.data.loc[uuid].to_dict()
+        html_content += render_file(file, add_info_button=False)
+    return html_content
+
+
+@app.route("/file_action", methods=["POST"])
+def file_action():
+    data = request.get_json()
+    uuids = json_loads(data.get("uuids", "[]"))
+    hash_library = HashLibrary(cached=True)
+    html_content = ""
+    for uuid in uuids:
+        file = hash_library.data.loc[uuid].to_dict()
+        html_content += render_file(file, add_info_button=False)
+    return html_content
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(str(base_dir / "static"), "favicon.svg", mimetype="image/svg+xml")
 
 
 def get_tree(data: DataFrame, match_types=[]) -> dict:
@@ -226,26 +279,12 @@ def render_file(file: dict, add_info_button=True) -> str:
     return html
 
 
-@app.route("/file_hint", methods=["POST"])
-def file_hint():
-    data = request.get_json()
-    uuids = json_loads(data.get("uuids", "[]"))
-    hash_library = HashLibrary(cached=True)
-    html_content = ""
-    for uuid in uuids:
-        file = hash_library.data.loc[uuid].to_dict()
-        html_content += render_file(file, add_info_button=False)
-    return html_content
-
-
-@app.route("/favicon.ico")
-def favicon():
-    return send_from_directory(str(base_dir / "static"), "favicon.svg", mimetype="image/svg+xml")
-
-
 def run(host="127.0.0.1", port=5000):
     def open_browser():
         open_new_webbrowser(f"http://{host}:{port}/")
+
+    # logging basic config
+    basicConfig(level="DEBUG", handlers=[StreamHandler()])
 
     HashLibrary().set_cached_data()
 
