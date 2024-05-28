@@ -16,7 +16,8 @@ LOGGING_LEVEL = "DEBUG"
 
 base_dir = Path(__file__).parent
 
-app = Flask("FolderMerge", template_folder=base_dir / "templates", static_folder=base_dir / "static")
+app = Flask("FolderMerge", template_folder=base_dir /
+            "templates", static_folder=base_dir / "static")
 
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=30)
@@ -25,6 +26,7 @@ app.permanent_session_lifetime = timedelta(minutes=30)
 @app.route("/")
 def index():
     logger = getLogger("gui.index")
+    logger.info("Connexion at homepage")
     reference_folder = session.get("reference_folder", None)
     compared_folders = session.get("compared_folders", [])
     return render_template(
@@ -78,7 +80,8 @@ def view_report():
 
         session.permanent = True
         session["reference_folder"] = str(reference_folder)
-        session["compared_folders"] = [str(folder) for folder in compared_folders]
+        session["compared_folders"] = [
+            str(folder) for folder in compared_folders]
         session["search_paths"] = [str(folder) for folder in search_paths]
 
         reference_report = fm.folders.main.report(mode="dict")
@@ -123,7 +126,7 @@ def get_session():
             refresh=False,
         )
         return fm
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -162,7 +165,8 @@ def view_files():
         df = folder.data  # type: ignore
         reference_folder = None
     else:
-        df = folder.comparisons[fm.folders.main.name].get_files(files_selection)  # type: ignore
+        df = folder.comparisons[fm.folders.main.name].get_files(
+            files_selection)  # type: ignore
 
     return render_template(
         "files_view.html",
