@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styling.css') }}">
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+
+<body>
+
+    <div id="top-ribbon">
+        
+    </div>
+
+    <div id="main">
+        <ul id="filter-command">
+                <div class="title">Foldermerge</div>
+                <textarea placeholder="enter your filter rules here"></textarea>
+                <div class="generic action-button" onclick="act_on_selection()">Selected Action</div>
+        </ul>
+        
+        <div id="filter-container">
+            <div class="list-container">			
+                    <div class="list-title">C:\</div>	
+                
+                    <div class="row-container list-headers">
+                        <div class="element">Select</div>
+                        <div class="element expand"></div>
+                        <div class="element">Paths</div>
+                        <div class="element expand"></div>
+                        <div class="element">Actions<div class="" role="button"></div></div>
+                        <div class="element expand afteractions" style="max-width:120px;"></div>
+                    </div>
+                        
+                <div class="row-container filter-item" source_path="C:/untruc">
+                    <div class="element checkable"><input type="checkbox"></div>
+                    <div class="element expand beforepath"></div>
+                    <div class="element text-description" >C:\untruc</div>
+                    <div class="element expand"></div>
+                    <div class="element action-button">Copy to reference</div>
+                    <div class="element action-button">Delete</div>
+                </div>
+                
+                <div class="row-container filter-item" source_path="C:\Users\timot\Documents\Darkest">
+                    <div class="element checkable"><input type="checkbox"></div>
+                    <div class="element expand beforepath"></div>
+                    <div class="element text-description">C:\Users\timot\Documents\Darkest</div>
+                    <div class="element expand"></div>
+                    <div class="element action-button" role="button">Copy to reference</div>
+                    <div class="element action-button" role="button">Delete</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

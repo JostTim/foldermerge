@@ -101,7 +101,6 @@ function concatenateComparedFolders() {
 
     var comparedFolders = Array.from(document.getElementsByClassName('margin_container'));
 
-
     // var comparedFolders = Array.from(document.getElementsByClassName('compared_folder_hidden_val'));
     // Sort inputs by the number in their name attribute
     comparedFolders.sort((a, b) => {

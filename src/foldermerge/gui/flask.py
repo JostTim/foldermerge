@@ -25,15 +25,19 @@ app.permanent_session_lifetime = timedelta(minutes=30)
 
 @app.route("/")
 def index():
-    logger = getLogger("gui.index")
-    logger.info("Connexion at homepage")
-    reference_folder = session.get("reference_folder", None)
-    compared_folders = session.get("compared_folders", [])
-    return render_template(
-        "index.html",
-        compared_folders=compared_folders,
-        reference_folder=reference_folder,
-    )
+    return render_template("files_selection.html")
+
+    # @app.route("/")
+    # def index():
+    #     logger = getLogger("gui.index")
+    #     logger.info("Connexion at homepage")
+    #     reference_folder = session.get("reference_folder", None)
+    #     compared_folders = session.get("compared_folders", [])
+    #     return render_template(
+    #         "index.html",
+    #         compared_folders=compared_folders,
+    #         reference_folder=reference_folder,
+    #     )
 
 
 @app.route("/view_results", methods=["POST"])
@@ -187,6 +191,15 @@ def file_hint():
         file = hash_library.data.loc[uuid].to_dict()
         html_content += render_file(file, add_info_button=False)
     return html_content
+
+
+"""
+## The nex front shall : 
+- Have a top ribbon sticky, 
+    - leads back to home (folders selection)
+    - leads back to previous step (breadcrumbs) like report view, wich shows repos summarized results, repo edition selection
+
+"""
 
 
 @app.route("/file_action", methods=["POST"])
