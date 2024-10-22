@@ -5,7 +5,7 @@
 groups = ["default", "dev", "gui", "visualize"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:ba5485d6b07dce5f7be0c23814a51d4d2db05bf0df7a37b909b34d324cead260"
+content_hash = "sha256:183a03c8f8b087694228c8bd95755db01291c8116e83a8b873a22ed6e75cbb74"
 
 [[metadata.targets]]
 requires_python = ">=3.12,<3.13"
@@ -519,6 +519,19 @@ dependencies = [
 files = [
     {file = "flask-3.0.2-py3-none-any.whl", hash = "sha256:3232e0e9c850d781933cf0207523d1ece087eb8d87b23777ae38456e2fbe7c6e"},
     {file = "flask-3.0.2.tar.gz", hash = "sha256:822c03f4b799204250a7ee84b1eddc40665395333973dfb9deebfe425fefcb7d"},
+]
+
+[[package]]
+name = "flask-cors"
+version = "5.0.0"
+summary = "A Flask extension adding a decorator for CORS support"
+groups = ["default"]
+dependencies = [
+    "Flask>=0.9",
+]
+files = [
+    {file = "Flask_Cors-5.0.0-py2.py3-none-any.whl", hash = "sha256:b9e307d082a9261c100d8fb0ba909eec6a228ed1b60a8315fd85f783d61910bc"},
+    {file = "flask_cors-5.0.0.tar.gz", hash = "sha256:5aadb4b950c4e93745034594d9f3ea6591f734bb3662e16e255ffbf5e89c88ef"},
 ]
 
 [[package]]

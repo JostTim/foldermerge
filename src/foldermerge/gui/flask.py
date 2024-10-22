@@ -1,4 +1,5 @@
 from flask import Flask, url_for, redirect, send_from_directory, abort
+from flask_cors import CORS
 
 # from flask.sessions import SecureCookieSessionInterface
 from os import urandom
@@ -11,6 +12,7 @@ from logging import basicConfig, StreamHandler
 
 from .api import api_blueprint
 
+
 LOGGING_LEVEL = "DEBUG"
 
 base_dir = Path(__file__).parent
@@ -18,16 +20,18 @@ base_dir = Path(__file__).parent
 app = Flask(
     "FolderMerge",
     template_folder=base_dir / "templates",
-    static_folder=base_dir / "static",
+    static_folder=base_dir / "static",  # this is where the vue app dist folder content is dumped
 )
 app.secret_key = urandom(24)  # or a static, secure key for production
 app.permanent_session_lifetime = timedelta(minutes=30)
+
+# CORS(api_blueprint, resources={"/api/*": {"origins": "http://localhost:5000"}})
 
 app.register_blueprint(api_blueprint, url_prefix="/api")
 
 
 @app.route("/")
-def serve_vue_app():
+def serve_vue_index():
     if app.static_folder is None:
         return abort(404)
     return send_from_directory(app.static_folder, "index.html")
@@ -43,7 +47,7 @@ def serve_static_files(path):
         return send_from_directory(app.static_folder, path)
     except Exception as e:
         # If the file is not found, serve the index.html for Vue.js routing
-        return redirect(url_for("serve_vue_app"))
+        return redirect(url_for("serve_vue_index"))
 
 
 @app.route("/favicon.ico")
@@ -52,8 +56,15 @@ def favicon():
 
 
 def run(host="127.0.0.1", port=5000):
+    url = f"http://{host}:{port}"
+
     def open_browser():
-        open_new_webbrowser(f"http://{host}:{port}/")
+        open_new_webbrowser(url)
+
+    # enable cors is necessary for the vue app, and given we serve all from url, we enable it only for this url.
+    # also, it must be CORSified after the whole app is created and all routes are registered.
+    # https://en.wikipedia.org/wiki/Cross-site_request_forgery
+    CORS(app, resources={r"/*": {"origins": url}})
 
     # logging basic config
     basicConfig(level=LOGGING_LEVEL, handlers=[StreamHandler()])

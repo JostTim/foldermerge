@@ -9,6 +9,7 @@ dependencies = [
     "pandas>=2.1.4",
     "tqdm>=4.66.1",
     "flask-restful>=0.3.10",
+    "flask-cors>=5.0.0",
 ]
 requires-python = ">=3.12, <3.13"
 readme = "README.md"

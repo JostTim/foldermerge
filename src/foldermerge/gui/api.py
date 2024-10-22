@@ -35,12 +35,18 @@ class ApiRoot(Resource):
 
 class ApiData(Resource):
     def get(self):
-        return {"message": "Hello from Flask!"}
+        return FILES_DATA
 
 
 class ApiError(Resource):
     def get(self, path):
         return {"error": f"The api endpoint {path} do not exist !"}
+
+
+FILES_DATA = [
+    {"key": "sCABOON.pu", "value": "thing/foust/sCABOON.pu", "file_uuid": "zdaz", "file_matches": ["187165"]},
+    {"key": "lattix.isi", "value": "thing/testounet/blabla/lattix.isi", "file_uuid": "187165", "file_matches": []},
+]
 
 
 api.add_resource(ApiRoot, "/")
