@@ -43,10 +43,27 @@ class ApiError(Resource):
         return {"error": f"The api endpoint {path} do not exist !"}
 
 
-FILES_DATA = [
-    {"key": "sCABOON.pu", "value": "thing/foust/sCABOON.pu", "file_uuid": "zdaz", "file_matches": ["187165"]},
-    {"key": "lattix.isi", "value": "thing/testounet/blabla/lattix.isi", "file_uuid": "187165", "file_matches": []},
-]
+FILES_DATA = {
+    "name": "C:/",
+    "files": [
+        {"key": "sCABOON.pu", "value": "thing/foust/sCABOON.pu", "file_uuid": "zdaz", "file_matches": ["187165"]},
+        {"key": "lattix.isi", "value": "thing/testounet/blabla/lattix.isi", "file_uuid": "187165", "file_matches": []},
+    ],
+    "folders": [
+        {
+            "name": "subfolder",
+            "files": [
+                {
+                    "key": "sCABOON.pu",
+                    "value": "thing/foust/sCABOON.pu",
+                    "file_uuid": "zdaz",
+                    "file_matches": ["187165"],
+                }
+            ],
+            "folders": [],
+        }
+    ],
+}
 
 
 api.add_resource(ApiRoot, "/")
